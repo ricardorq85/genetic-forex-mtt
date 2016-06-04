@@ -351,7 +351,7 @@ bool CTrade::PositionModify(const string symbol,const double sl,const double tp)
    m_request.magic   =m_magic;
    m_request.sl      =sl;
    m_request.tp      =tp;
-   m_request.position=PositionGetInteger(POSITION_IDENTIFIER);
+   m_request.position=PositionGetInteger(POSITION_TICKET);
 //--- action and return the result
    return(OrderSend(m_request,m_result));
   }
@@ -424,7 +424,7 @@ bool CTrade::PositionClose(const string symbol,const ulong deviation)
       //--- hedging? just send order
       if(IsHedging())
         {
-         m_request.position=PositionGetInteger(POSITION_IDENTIFIER);
+         m_request.position=PositionGetInteger(POSITION_TICKET);
          return(OrderSend(m_request,m_result));
         }
       //--- check filling

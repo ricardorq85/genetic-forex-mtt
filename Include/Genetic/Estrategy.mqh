@@ -90,26 +90,26 @@ Estrategy::Estrategy()
    openPrice=0;
    yaActualizoStops=false;
 
-   indicadorMa = new Indicador();
-   indicadorMacd = new Indicador();
-   indicadorMaCompare = new Indicador();
-   indicadorSar = new Indicador();
-   indicadorAdx = new Indicador();
-   indicadorRsi = new Indicador();
-   indicadorBollinger = new Indicador();
-   indicadorMomentum = new Indicador();
-   indicadorIchiSignal = new Indicador();
-   indicadorIchiTrend = new Indicador();
-   indicadorMa1200 = new Indicador();
-   indicadorMacd20x = new Indicador();
-   indicadorMaCompare1200 = new Indicador();
-   indicadorSar1200 = new Indicador();
-   indicadorAdx168 = new Indicador();
-   indicadorRsi84 = new Indicador();
-   indicadorBollinger240 = new Indicador();
-   indicadorMomentum1200 = new Indicador();
-   indicadorIchiSignal6 = new Indicador();
-   indicadorIchiTrend6 = new Indicador();
+   indicadorMa = new Indicador("MA");
+   indicadorMacd = new Indicador("MACD");
+   indicadorMaCompare = new Indicador("MACOMPARE");
+   indicadorSar = new Indicador("SAR");
+   indicadorAdx = new Indicador("");
+   indicadorRsi = new Indicador("RSI");
+   indicadorBollinger = new Indicador("BOLLINGER");
+   indicadorMomentum = new Indicador("MOMENTUM");
+   indicadorIchiSignal = new Indicador("ICHISIGNAL");
+   indicadorIchiTrend = new Indicador("ICHITREND");
+   indicadorMa1200 = new Indicador("M1200");
+   indicadorMacd20x = new Indicador("MACD1200");
+   indicadorMaCompare1200 = new Indicador("MACOMPARE1200");
+   indicadorSar1200 = new Indicador("SAR1200");
+   indicadorAdx168 = new Indicador("ADX1200");
+   indicadorRsi84 = new Indicador("RSI84");
+   indicadorBollinger240 = new Indicador("BOLLINGER240");
+   indicadorMomentum1200 = new Indicador("MOMENTUM1200");
+   indicadorIchiSignal6 = new Indicador("ICHISIGNAL16");
+   indicadorIchiTrend6 = new Indicador("ICHITREND6");
 
   }
 
@@ -241,10 +241,10 @@ void Estrategy::initEstrategias(string strEstrategia,int indexParam)
    obtenerValorIndicador("closeIchiTrend", "closeICHIMOKU_TREND", indicadorIchiTrend, false, strEstrategia);
    
    obtenerValorIndicador("openIchiSignal", "openICHIMOKU_SIGNAL", indicadorIchiSignal, true, strEstrategia);
-   obtenerValorIndicador("openIchiSignal", "openICHIMOKU_SIGNAL", indicadorIchiSignal, false, strEstrategia);
+   obtenerValorIndicador("closeIchiSignal", "closeICHIMOKU_SIGNAL", indicadorIchiSignal, false, strEstrategia);
    
    obtenerValorIndicador("openMa1200", "openMa1200", indicadorMa1200, true, strEstrategia);
-   obtenerValorIndicador("closeMa1200", "CloseMa1200", indicadorMa1200, false, strEstrategia);
+   obtenerValorIndicador("closeMa1200", "closeMa1200", indicadorMa1200, false, strEstrategia);
 
    obtenerValorIndicador("openMacd20x", "openMacd20x", indicadorMacd20x, true, strEstrategia);
    obtenerValorIndicador("closeMacd20x", "closeMacd20x", indicadorMacd20x, false, strEstrategia);
@@ -271,7 +271,7 @@ void Estrategy::initEstrategias(string strEstrategia,int indexParam)
    obtenerValorIndicador("closeIchiTrend6", "closeICHIMOKU_TREND6", indicadorIchiTrend6, false, strEstrategia);
    
    obtenerValorIndicador("openIchiSignal6", "openICHIMOKU_SIGNAL6", indicadorIchiSignal6, true, strEstrategia);
-   obtenerValorIndicador("openIchiSignal6", "openICHIMOKU_SIGNAL6", indicadorIchiSignal6, false, strEstrategia);
+   obtenerValorIndicador("closeIchiSignal6", "closeICHIMOKU_SIGNAL6", indicadorIchiSignal6, false, strEstrategia);
    
   }
   
@@ -420,11 +420,11 @@ string Estrategy::getValue(string strEstrategia,string name,string defaultValue)
   }
 
 void Estrategy::obtenerValorIndicador(string name, string name2, Indicador *indicador, bool isOpen, string strEstrategia) {
-   double tmpLower = NormalizeDouble(StringToDouble(getValue(strEstrategia,name+"Lower"))/divide,_Digits);
-   double tmpHigher = NormalizeDouble(StringToDouble(getValue(strEstrategia,name+"Higher"))/divide,_Digits);
+   double tmpLower = NormalizeDouble(StringToDouble(getValue(strEstrategia,name+"Lower"))/divide,5);
+   double tmpHigher = NormalizeDouble(StringToDouble(getValue(strEstrategia,name+"Higher"))/divide,5);
    if ((tmpLower==-10000)||(tmpHigher==10000)){
-      tmpLower=NormalizeDouble(StringToDouble(getValue(strEstrategia, name2+"Lower"))/divide,_Digits);
-      tmpHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,name2+"Higher"))/divide,_Digits);
+      tmpLower=NormalizeDouble(StringToDouble(getValue(strEstrategia, name2+"Lower"))/divide,5);
+      tmpHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,name2+"Higher"))/divide,5);
       if ((tmpLower==-10000)||(tmpHigher==10000)){
          if (isOpen) {
             indicador.openLower = 0.0;

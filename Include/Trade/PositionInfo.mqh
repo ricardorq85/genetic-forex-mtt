@@ -23,6 +23,7 @@ public:
                      CPositionInfo(void);
                     ~CPositionInfo(void);
    //--- fast access methods to the integer position propertyes
+   ulong             Ticket(void) const;
    datetime          Time(void) const;
    ulong             TimeMsc(void) const;
    datetime          TimeUpdate(void) const;
@@ -76,6 +77,13 @@ CPositionInfo::~CPositionInfo(void)
   {
   }
 //+------------------------------------------------------------------+
+//| Get the property value "POSITION_TICKET"                         |
+//+------------------------------------------------------------------+
+ulong CPositionInfo::Ticket(void) const
+  {
+   return((ulong)PositionGetInteger(POSITION_TICKET));
+  }
+//+------------------------------------------------------------------+
 //| Get the property value "POSITION_TIME"                           |
 //+------------------------------------------------------------------+
 datetime CPositionInfo::Time(void) const
@@ -87,7 +95,7 @@ datetime CPositionInfo::Time(void) const
 //+------------------------------------------------------------------+
 ulong CPositionInfo::TimeMsc(void) const
   {
-   return((datetime)PositionGetInteger(POSITION_TIME_MSC));
+   return((ulong)PositionGetInteger(POSITION_TIME_MSC));
   }
 //+------------------------------------------------------------------+
 //| Get the property value "POSITION_TIME_UPDATE"                    |
@@ -101,7 +109,7 @@ datetime CPositionInfo::TimeUpdate(void) const
 //+------------------------------------------------------------------+
 ulong CPositionInfo::TimeUpdateMsc(void) const
   {
-   return((datetime)PositionGetInteger(POSITION_TIME_UPDATE_MSC));
+   return((ulong)PositionGetInteger(POSITION_TIME_UPDATE_MSC));
   }
 //+------------------------------------------------------------------+
 //| Get the property value "POSITION_TYPE"                           |
@@ -255,7 +263,7 @@ string CPositionInfo::FormatPosition(string &str) const
 //--- form the position description
    if(margin_mode==ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
       str=StringFormat("#%I64u %s %s %s %s",
-                       Identifier(),
+                       Ticket(),
                        FormatType(type,PositionType()),
                        DoubleToString(Volume(),2),
                        Symbol(),

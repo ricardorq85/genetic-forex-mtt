@@ -837,7 +837,7 @@ bool CExpert::ReverseLong(double price,double sl,double tp)
      {
       //--- first close existing position
       lot-=m_position.Volume();
-      result=m_trade.PositionClose(m_position.Identifier());
+      result=m_trade.PositionClose(m_position.Ticket());
      }
    if(result)
      {
@@ -868,7 +868,7 @@ bool CExpert::ReverseShort(double price,double sl,double tp)
      {
       //--- first close existing position
       lot-=m_position.Volume();
-      result=m_trade.PositionClose(m_position.Identifier());
+      result=m_trade.PositionClose(m_position.Ticket());
      }
    if(result)
      {
@@ -944,7 +944,7 @@ bool CExpert::CloseAll(double lot)
    bool result=false;
 //--- check for close operations
    if(IsHedging())
-      result=m_trade.PositionClose(m_position.Identifier());
+      result=m_trade.PositionClose(m_position.Ticket());
    else
      {
       if(m_position.PositionType()==POSITION_TYPE_BUY)
@@ -973,7 +973,7 @@ bool CExpert::CloseLong(double price)
    if(price==EMPTY_VALUE)
       return(false);
    if(IsHedging())
-      result=m_trade.PositionClose(m_position.Identifier());
+      result=m_trade.PositionClose(m_position.Ticket());
    else
       result=m_trade.Sell(m_position.Volume(),price,0,0);
 //---
@@ -989,7 +989,7 @@ bool CExpert::CloseShort(double price)
    if(price==EMPTY_VALUE)
       return(false);
    if(IsHedging())
-      result=m_trade.PositionClose(m_position.Identifier());
+      result=m_trade.PositionClose(m_position.Ticket());
    else
       result=m_trade.Buy(m_position.Volume(),price,0,0);
 //---
@@ -1080,7 +1080,7 @@ bool CExpert::TrailingStopLong(double sl,double tp)
    bool result;
 //---
    if(IsHedging())
-      result=m_trade.PositionModify(m_position.Identifier(),sl,tp);
+      result=m_trade.PositionModify(m_position.Ticket(),sl,tp);
    else
       result=m_trade.PositionModify(m_symbol.Name(),sl,tp);
 //---
@@ -1094,7 +1094,7 @@ bool CExpert::TrailingStopShort(double sl,double tp)
    bool result;
 //---
    if(IsHedging())
-      result=m_trade.PositionModify(m_position.Identifier(),sl,tp);
+      result=m_trade.PositionModify(m_position.Ticket(),sl,tp);
    else
       result=m_trade.PositionModify(m_symbol.Name(),sl,tp);
 //---
