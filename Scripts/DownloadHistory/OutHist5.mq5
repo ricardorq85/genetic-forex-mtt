@@ -57,7 +57,7 @@ void  OnStart()
 
    int macdHandle=iMACD(_Symbol,_Period,12,26,9,PRICE_WEIGHTED);
    SetIndexBuffer(0,macdMainBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,macdSignalBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,macdSignalBuffer,INDICATOR_DATA);
    CopyBuffer(macdHandle,0,0,to_copy,macdMainBuffer);
    CopyBuffer(macdHandle,1,0,to_copy,macdSignalBuffer);
    ArraySetAsSeries(macdMainBuffer,true);
@@ -70,8 +70,8 @@ void  OnStart()
 
    int adxHandle=iADX(_Symbol,_Period,14);
    SetIndexBuffer(0,adxMainBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,adxPlusBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,adxMinusBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,adxPlusBuffer,INDICATOR_DATA);
+   SetIndexBuffer(2,adxMinusBuffer,INDICATOR_DATA);
    CopyBuffer(adxHandle,0,0,to_copy,adxMainBuffer);
    CopyBuffer(adxHandle,1,0,to_copy,adxPlusBuffer);
    CopyBuffer(adxHandle,2,0,to_copy,adxMinusBuffer);
@@ -85,8 +85,8 @@ void  OnStart()
    ArraySetAsSeries(rsiBuffer,true);
 
    int bandsHandle=iBands(_Symbol,_Period,20,2,2,PRICE_WEIGHTED);
-   SetIndexBuffer(0,bandsUpperBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,bandsLowerBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,bandsUpperBuffer,INDICATOR_DATA);
+   SetIndexBuffer(2,bandsLowerBuffer,INDICATOR_DATA);
    CopyBuffer(bandsHandle,1,0,to_copy,bandsUpperBuffer);
    CopyBuffer(bandsHandle,2,0,to_copy,bandsLowerBuffer);
    ArraySetAsSeries(bandsUpperBuffer,true);
@@ -99,10 +99,10 @@ void  OnStart()
    
    int ichiHandle=iIchimoku(_Symbol,_Period,9,26,52);
    SetIndexBuffer(0,ichiTenkanSenBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,ichiKijunSenBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,ichiSenkouSpanABuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,ichiSenkouSpanBBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,ichiChinkouSpanBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,ichiKijunSenBuffer,INDICATOR_DATA);
+   SetIndexBuffer(2,ichiSenkouSpanABuffer,INDICATOR_DATA);
+   SetIndexBuffer(3,ichiSenkouSpanBBuffer,INDICATOR_DATA);
+   SetIndexBuffer(4,ichiChinkouSpanBuffer,INDICATOR_DATA);
    CopyBuffer(ichiHandle,0,0,to_copy,ichiTenkanSenBuffer);
    CopyBuffer(ichiHandle,1,0,to_copy,ichiKijunSenBuffer);
    CopyBuffer(ichiHandle,2,0,to_copy,ichiSenkouSpanABuffer);

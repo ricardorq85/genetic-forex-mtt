@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                       Dialog.mqh |
-//|                   Copyright 2009-2013, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2015, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
 #include "WndContainer.mqh"
@@ -645,7 +645,7 @@ void CAppDialog::Destroy(const int reason)
          ChartIndicatorDelete(m_chart_id,m_subwin,m_indicator_name);
      }
 //--- send message
-   EventChartCustom(m_chart_id,ON_APP_CLOSE,m_subwin,0.0,m_program_name);
+   EventChartCustom(CONTROLS_SELF_MESSAGE,ON_APP_CLOSE,m_subwin,0.0,m_program_name);
   }
 //+------------------------------------------------------------------+
 //| Calculate subwindow offset                                       |

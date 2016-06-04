@@ -6,9 +6,9 @@
 #property copyright "RROJASQ"
 #property link      ""
 #property version   "1.00"
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
+#include <Indicador.mqh>
+
 class Estrategy
   {
 public:
@@ -68,10 +68,12 @@ public:
    double            closeIchiTrendLower;
    double            closeIchiTrendHigher;
 
-   double            openIchiSignalLower;
-   double            openIchiSignalHigher;
-   double            closeIchiSignalLower;
-   double            closeIchiSignalHigher;
+   //double            openIchiSignalLower;
+   //double            openIchiSignalHigher;
+   //double            closeIchiSignalLower;
+   //double            closeIchiSignalHigher;
+   
+   Indicador         indicadorIchiSignal;   
    
    int               maxConsecutiveLostOperationsNumber;
    int               maxConsecutiveWonOperationsNumber;
@@ -97,13 +99,7 @@ private:
    double            divide;
    string            getValue(string strEstrategia,string name);
    string            getValue(string strEstrategia,string name,string defaultValue);   
-   //+------------------------------------------------------------------+
-   //|                                                                  |
-   //+------------------------------------------------------------------+
   };
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 Estrategy::Estrategy()
   {
    divide=100;
@@ -111,13 +107,12 @@ Estrategy::Estrategy()
    closeIndicator=false;
    openDate=NULL;
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
 Estrategy::~Estrategy()
   {
+
   }
-//+------------------------------------------------------------------+
+
 void Estrategy::initEstrategias(string strEstrategia,int indexParam)
   {
    active=true;
@@ -234,64 +229,90 @@ void Estrategy::initEstrategias(string strEstrategia,int indexParam)
       closeIchiTrendHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeICHIMOKU_TRENDHigher"))/divide,_Digits);
    }
 
-   openIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"openIchiSignalLower"))/divide,_Digits);
-   openIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"openIchiSignalHigher"))/divide,_Digits);
-   if ((openIchiSignalLower==-10000)||(openIchiSignalHigher==10000)){
-      openIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"openICHIMOKU_SIGNALLower"))/divide,_Digits);
-      openIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"openICHIMOKU_SIGNALHigher"))/divide,_Digits);   
+   double tmpOpenIchiSignalLower = NormalizeDouble(StringToDouble(getValue(strEstrategia,"openIchiSignalLower"))/divide,_Digits);
+   double tmpOpenIchiSignalHigher = NormalizeDouble(StringToDouble(getValue(strEstrategia,"openIchiSignalHigher"))/divide,_Digits);
+   if ((tmpOpenIchiSignalLower==-10000)||(tmpOpenIchiSignalHigher==10000)){
+      tmpOpenIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"openICHIMOKU_SIGNALLower"))/divide,_Digits);
+      tmpOpenIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"openICHIMOKU_SIGNALHigher"))/divide,_Digits);
+      if ((tmpOpenIchiSignalLower==-10000)||(tmpOpenIchiSignalHigher==10000)){
+         indicadorIchiSignal.openLower = 0.0;
+         indicadorIchiSignal.openHigher = 0.0;
+         indicadorIchiSignal.hasOpen = false;
+      } else {
+         indicadorIchiSignal.openLower = tmpOpenIchiSignalLower;
+         indicadorIchiSignal.openHigher = tmpOpenIchiSignalHigher;      
+         indicadorIchiSignal.hasOpen = true;
+      }
+   } else {
+      indicadorIchiSignal.openLower = tmpOpenIchiSignalLower;
+      indicadorIchiSignal.openHigher = tmpOpenIchiSignalHigher;      
+      indicadorIchiSignal.hasOpen = true;      
    }
 
-   closeIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeIchiSignalLower"))/divide,_Digits);
-   closeIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeIchiSignalHigher"))/divide,_Digits);   
-   if ((closeIchiSignalLower==-10000)||(closeIchiSignalHigher==10000)){
-      closeIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeICHIMOKU_SIGNALLower"))/divide,_Digits);
-      closeIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeICHIMOKU_SIGNALHigher"))/divide,_Digits);
+   double tmpCloseIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeIchiSignalLower"))/divide,_Digits);
+   double tmpCloseIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeIchiSignalHigher"))/divide,_Digits);   
+   if ((tmpCloseIchiSignalLower==-10000)||(tmpCloseIchiSignalHigher==10000)){
+      tmpCloseIchiSignalLower=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeICHIMOKU_SIGNALLower"))/divide,_Digits);
+      tmpCloseIchiSignalHigher=NormalizeDouble(StringToDouble(getValue(strEstrategia,"closeICHIMOKU_SIGNALHigher"))/divide,_Digits);
+      if ((tmpCloseIchiSignalLower==-10000)||(tmpCloseIchiSignalHigher==10000)){
+         indicadorIchiSignal.closeLower = 0.0;
+         indicadorIchiSignal.closeHigher = 0.0;
+         indicadorIchiSignal.hasClose = false;
+      } else {
+         indicadorIchiSignal.closeLower = tmpCloseIchiSignalLower;
+         indicadorIchiSignal.closeHigher = tmpCloseIchiSignalHigher;      
+         indicadorIchiSignal.hasClose = true;
+      }
+   } else {
+      indicadorIchiSignal.closeLower = tmpCloseIchiSignalLower;
+      indicadorIchiSignal.closeHigher = tmpCloseIchiSignalHigher;      
+      indicadorIchiSignal.hasClose = true;
    }
   }
-//+------------------------------------------------------------------+
 
 string Estrategy::toString(){
- string str = "EstrategiaId="+EstrategiaId+";StopLoss="+IntegerToString((long)StopLoss)+";TakeProfit="+IntegerToString((long)TakeProfit)+
-   ";openAdxLower="+IntegerToString((long)openAdxLower)+
-   ";openAdxHigher="+IntegerToString((long)openAdxHigher)+
-   ";openBollingerLower="+IntegerToString((long)openBollingerLower)+
-   ";openBollingerHigher="+IntegerToString((long)openBollingerHigher)+
-   ";openIchiSignalLower="+IntegerToString((long)openIchiSignalLower)+
-   ";openIchiSignalHigher="+IntegerToString((long)openIchiSignalHigher)+
-   ";openIchiTrendLower="+IntegerToString((long)openIchiTrendLower)+
-   ";openIchiTrendHigher="+IntegerToString((long)openIchiTrendHigher)+
-   ";openMaCompareLower="+IntegerToString((long)openMaCompareLower)+
-   ";openMaCompareHigher="+IntegerToString((long)openMaCompareHigher)+
-   ";openMaLower="+IntegerToString((long)openMaLower)+
-   ";openMaHigher="+IntegerToString((long)openMaHigher)+
-   ";openMacdLower="+IntegerToString((long)openMacdLower)+
-   ";openMacdHigher="+IntegerToString((long)openMacdHigher)+
-   ";openMomentumLower="+IntegerToString((long)openMomentumLower)+
-   ";openMomentumHigher="+IntegerToString((long)openMomentumHigher)+
-   ";openRsiLower="+IntegerToString((long)openRsiLower)+
-   ";openRsiHigher="+IntegerToString((long)openRsiHigher)+
-   ";openSarLower="+IntegerToString((long)openSarLower)+
-   ";openSarHigher="+IntegerToString((long)openSarHigher)+
-   ";closeAdxLower="+IntegerToString((long)closeAdxLower)+
-   ";closeAdxHigher="+IntegerToString((long)closeAdxHigher)+
-   ";closeBollingerLower="+IntegerToString((long)closeBollingerLower)+
-   ";closeBollingerHigher="+IntegerToString((long)closeBollingerHigher)+
-   ";closeIchiSignalLower="+IntegerToString((long)closeIchiSignalLower)+
-   ";closeIchiSignalHigher="+IntegerToString((long)closeIchiSignalHigher)+
-   ";closeIchiTrendLower="+IntegerToString((long)closeIchiTrendLower)+
-   ";closeIchiTrendHigher="+IntegerToString((long)closeIchiTrendHigher)+
-   ";closeMaCompareLower="+IntegerToString((long)closeMaCompareLower)+
-   ";closeMaCompareHigher="+IntegerToString((long)closeMaCompareHigher)+
-   ";closeMaLower="+IntegerToString((long)closeMaLower)+
-   ";closeMaHigher="+IntegerToString((long)closeMaHigher)+
-   ";closeMacdLower="+IntegerToString((long)closeMacdLower)+
-   ";closeMacdHigher="+IntegerToString((long)closeMacdHigher)+
-   ";closeMomentumLower="+IntegerToString((long)closeMomentumLower)+
-   ";closeMomentumHigher="+IntegerToString((long)closeMomentumHigher)+
-   ";closeRsiLower="+IntegerToString((long)closeRsiLower)+
-   ";closeRsiHigher="+IntegerToString((long)closeRsiHigher)+
-   ";closeSarLower="+IntegerToString((long)closeSarLower)+
-   ";closeRsiHigher="+IntegerToString((long)closeRsiHigher)
+
+ string str = "EstrategiaId="+EstrategiaId+";StopLoss="+DoubleToString(StopLoss)+";TakeProfit="+DoubleToString(TakeProfit)+
+   ";openAdxLower="+DoubleToString(openAdxLower)+
+   ";openAdxHigher="+DoubleToString(openAdxHigher)+
+   ";openBollingerLower="+DoubleToString(openBollingerLower)+
+   ";openBollingerHigher="+DoubleToString(openBollingerHigher)+
+   ";openIchiSignalLower="+DoubleToString(indicadorIchiSignal.openLower)+
+   ";openIchiSignalHigher="+DoubleToString(indicadorIchiSignal.openHigher)+
+   ";openIchiTrendLower="+DoubleToString(openIchiTrendLower)+
+   ";openIchiTrendHigher="+DoubleToString(openIchiTrendHigher)+
+   ";openMaCompareLower="+DoubleToString(openMaCompareLower)+
+   ";openMaCompareHigher="+DoubleToString(openMaCompareHigher)+
+   ";openMaLower="+DoubleToString(openMaLower)+
+   ";openMaHigher="+DoubleToString(openMaHigher)+
+   ";openMacdLower="+DoubleToString(openMacdLower)+
+   ";openMacdHigher="+DoubleToString(openMacdHigher)+
+   ";openMomentumLower="+DoubleToString(openMomentumLower)+
+   ";openMomentumHigher="+DoubleToString(openMomentumHigher)+
+   ";openRsiLower="+DoubleToString(openRsiLower)+
+   ";openRsiHigher="+DoubleToString(openRsiHigher)+
+   ";openSarLower="+DoubleToString(openSarLower)+
+   ";openSarHigher="+DoubleToString(openSarHigher)+
+   ";closeAdxLower="+DoubleToString(closeAdxLower)+
+   ";closeAdxHigher="+DoubleToString(closeAdxHigher)+
+   ";closeBollingerLower="+DoubleToString(closeBollingerLower)+
+   ";closeBollingerHigher="+DoubleToString(closeBollingerHigher)+
+   ";closeIchiSignalLower="+DoubleToString(indicadorIchiSignal.closeLower)+
+   ";closeIchiSignalHigher="+DoubleToString(indicadorIchiSignal.closeHigher)+
+   ";closeIchiTrendLower="+DoubleToString(closeIchiTrendLower)+
+   ";closeIchiTrendHigher="+DoubleToString(closeIchiTrendHigher)+
+   ";closeMaCompareLower="+DoubleToString(closeMaCompareLower)+
+   ";closeMaCompareHigher="+DoubleToString(closeMaCompareHigher)+
+   ";closeMaLower="+DoubleToString(closeMaLower)+
+   ";closeMaHigher="+DoubleToString(closeMaHigher)+
+   ";closeMacdLower="+DoubleToString(closeMacdLower)+
+   ";closeMacdHigher="+DoubleToString(closeMacdHigher)+
+   ";closeMomentumLower="+DoubleToString(closeMomentumLower)+
+   ";closeMomentumHigher="+DoubleToString(closeMomentumHigher)+
+   ";closeRsiLower="+DoubleToString(closeRsiLower)+
+   ";closeRsiHigher="+DoubleToString(closeRsiHigher)+
+   ";closeSarLower="+DoubleToString(closeSarLower)+
+   ";closeRsiHigher="+DoubleToString(closeRsiHigher)
    ;
  return str;
 }

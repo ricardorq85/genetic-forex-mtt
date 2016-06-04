@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                  RadioButton.mqh |
-//|                   Copyright 2009-2013, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2015, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
 #include "WndContainer.mqh"
@@ -35,7 +35,7 @@ public:
    color             Color(void)         const { return(m_label.Color());        }
    bool              Color(const color value)  { return(m_label.Color(value));   }
    //--- state
-   bool              State(void)               { return(m_button.Pressed());     }
+   bool              State(void)         const { return(m_button.Pressed());     }
    bool              State(const bool flag)    { return(m_button.Pressed(flag)); }
 
 protected:
@@ -139,7 +139,7 @@ bool CRadioButton::OnClickButton(void)
          return(false);
      }
 //--- send the "changed state" event
-   EventChartCustom(m_chart_id,ON_CHANGE,m_id,0.0,m_name);
+   EventChartCustom(CONTROLS_SELF_MESSAGE,ON_CHANGE,m_id,0.0,m_name);
 //--- handled
    return(true);
   }

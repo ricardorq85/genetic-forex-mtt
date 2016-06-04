@@ -51,6 +51,12 @@ double ichiSenkouSpanABuffer[];
 double ichiSenkouSpanBBuffer[];
 double ichiChinkouSpanBuffer[];
 
+   double ichiTenkanSen;
+   double ichiKijunSen;
+   double ichiSpanA;
+   double ichiSpanB;
+   double ichiChinkouSpan;
+
 double initialBalance=0.0;
 double maxBalance=0.0;
 datetime lastTime=0;
@@ -262,12 +268,12 @@ void process()
    double bollingerUpper = NormalizeDouble(bandsUpperBuffer[shift], _Digits);
    double bollingerLower = NormalizeDouble(bandsLowerBuffer[shift], _Digits);
    double momentum=NormalizeDouble(momentumBuffer[shift],_Digits);
-   double ichiTenkanSen= NormalizeDouble(ichiTenkanSenBuffer[shift],_Digits);
-   double ichiKijunSen = NormalizeDouble(ichiKijunSenBuffer[shift],_Digits);
-   double ichiSpanA = NormalizeDouble(ichiSenkouSpanABuffer[shift],_Digits);
-   double ichiSpanB = NormalizeDouble(ichiSenkouSpanBBuffer[shift],_Digits);
-   double ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[shift],_Digits);
-//Print("ichiChinkouSpan="+ichiChinkouSpan);
+
+   ichiTenkanSen= NormalizeDouble(ichiTenkanSenBuffer[shift],_Digits);
+   ichiKijunSen = NormalizeDouble(ichiKijunSenBuffer[shift],_Digits);
+   ichiSpanA = NormalizeDouble(ichiSenkouSpanABuffer[shift],_Digits);
+   ichiSpanB = NormalizeDouble(ichiSenkouSpanBBuffer[shift],_Digits);
+   ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[shift],_Digits);   
 
    double low=NormalizeDouble(rates_array[shift].low,_Digits);
    double high=NormalizeDouble(rates_array[shift].high,_Digits);
@@ -335,8 +341,9 @@ void process()
          && (difference.momentumDiff <= currentEstrategia.closeMomentumHigher)
          && (difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower)
          && (difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher)
-         && (difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower)
-         && (difference.ichiSignalDiff <= currentEstrategia.closeIchiSignalHigher)
+         && (!currentEstrategia.indicadorIchiSignal.hasOpen
+            || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.closeLower)
+            && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.closeHigher)))
          )
         {
          if(PositionSelect(_Symbol))
@@ -381,8 +388,9 @@ void process()
          && (difference.momentumDiff <= currentEstrategia.closeMomentumHigher)
          && (difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower)
          && (difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher)
-         && (difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower)
-         && (difference.ichiSignalDiff <= currentEstrategia.closeIchiSignalHigher)
+         && (!currentEstrategia.indicadorIchiSignal.hasClose
+            || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.closeLower)
+         && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.closeHigher)))
          )
         {
          if(PositionSelect(_Symbol))
@@ -473,8 +481,9 @@ void process()
                && (difference.momentumDiff <= currentEstrategia.openMomentumHigher)
                && (difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower)
                && (difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher)
-               && (difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower)
-               && (difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher)
+               && ((!currentEstrategia.indicadorIchiSignal.hasOpen) 
+                  || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.openLower)
+                  && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.openHigher)))
                )
               {
                if(endEstrategias && (oneByPeriod || onceAtTime))
@@ -534,9 +543,7 @@ void process()
          //Print("4.0.1 currentEstrategia.openIchiTrendLower="+currentEstrategia.openIchiTrendLower);
          if(print)
            {           
-            if (currentEstrategia.EstrategiaId=="1342064824281.87571"){
                printSellEvaluation(difference,currentEstrategia,low-last_tick.bid);
-               }
            }
          if((currentEstrategia.open==false)
             && (currentEstrategia.orderType==ORDER_TYPE_SELL))
@@ -560,8 +567,9 @@ void process()
                && (difference.momentumDiff <= currentEstrategia.openMomentumHigher)
                && (difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower)
                && (difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher)
-               && (difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower)
-               && (difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher)
+               && ((!currentEstrategia.indicadorIchiSignal.hasOpen)
+                  || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.openLower)
+               && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.openHigher)))
                )
               {
                if(endEstrategias && (oneByPeriod || onceAtTime))
@@ -584,7 +592,13 @@ void process()
                     {
                      //Print("TEST ma="+ma+" maCompare="+maCompare+" difference.maCompareDiff="+difference.maCompareDiff+" closeCompare="+closeCompare+" macdV="+macdV+" macdS="+macdS+" sar="+sar+" adxValue="+adxValue+" adxPlus="+adxPlus+" adxMinus="+adxMinus+" rsi="+rsi+" bollingerUpper="+bollingerUpper+" bollingerLower="+bollingerLower+" momentum="+momentum);
                      //Print("TEST 2 currentEstrategia.openMaCompareLower="+currentEstrategia.openMaCompareLower+" currentEstrategia.openMaCompareHigher="+currentEstrategia.openMaCompareLower);
-                     
+                     Print("difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff));
+                        Print("ichiTenkanSen="+DoubleToString(ichiTenkanSen));
+   Print("ichiKijunSen="+DoubleToString(ichiKijunSen));
+   Print("ichiSpanA="+DoubleToString(ichiSpanA));
+   Print("ichiSpanB="+DoubleToString(ichiSpanB));
+   Print("ichiChinkouSpan="+DoubleToString(ichiChinkouSpan));
+
                      executed=trading.PositionOpen(_Symbol,ORDER_TYPE_SELL,lot,last_tick.bid,last_tick.bid+currentEstrategia.StopLoss*_Point,last_tick.bid-currentEstrategia.TakeProfit*_Point,currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId);
                      if(executed)
                        {
@@ -730,13 +744,13 @@ double exponent(double base,int exponent)
   }
 
 void customPrint(string str)
-  {     
+  { 
    if(print)
      {
-     if ((activeTime>StringToTime("2012.08.21 08:12")) && (activeTime<StringToTime("2012.08.23 00:00"))){
+     //if ((activeTime>StringToTime("2012.08.21 08:12")) && (activeTime<StringToTime("2012.08.23 00:00"))){
       Print(str);
       }
-     }
+     //}
   }
 
 void nextVigencia(Estrategy *currentEstrategia,datetime time)
@@ -987,10 +1001,22 @@ void printBuyEvaluation(Difference *difference,Estrategy *currentEstrategia,doub
       customPrint("(difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendLower="+DoubleToString(currentEstrategia.openIchiTrendLower));
         } else if(!(difference.ichiTrendDiff<=currentEstrategia.openIchiTrendHigher)) {
       customPrint("(difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendHigher="+DoubleToString(currentEstrategia.openIchiTrendHigher));
-        } else if(!(difference.ichiSignalDiff>=currentEstrategia.openIchiSignalLower)) {
-      customPrint("(difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalLower="+DoubleToString(currentEstrategia.openIchiSignalLower));
-        } else if(!(difference.ichiSignalDiff<=currentEstrategia.openIchiSignalHigher)) {
-      customPrint("(difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalHigher="+DoubleToString(currentEstrategia.openIchiSignalHigher));
+        } else if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.openLower)) {
+      customPrint("(difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalLower="+DoubleToString(currentEstrategia.indicadorIchiSignal.openLower));
+      customPrint(ichiTenkanSen);
+      customPrint(ichiKijunSen);
+      customPrint(ichiSpanA);
+      customPrint(ichiSpanB);
+      customPrint(ichiChinkouSpan);   
+
+        } else if(!(difference.ichiSignalDiff<=currentEstrategia.indicadorIchiSignal.openHigher)) {
+      customPrint("(difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalHigher="+DoubleToString(currentEstrategia.indicadorIchiSignal.openHigher));
+      customPrint(ichiTenkanSen);
+      customPrint(ichiKijunSen);
+      customPrint(ichiSpanA);
+      customPrint(ichiSpanB);
+      customPrint(ichiChinkouSpan);   
+      
      }
   }
 
@@ -1143,13 +1169,23 @@ void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,dou
      {
       customPrint("(difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendHigher="+DoubleToString(currentEstrategia.openIchiTrendHigher));
      }
-   if(!(difference.ichiSignalDiff>=currentEstrategia.openIchiSignalLower))
+   if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.openLower))
      {
-      customPrint("(difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalLower="+DoubleToString(currentEstrategia.openIchiSignalLower));
+      customPrint("(difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalLower="+DoubleToString(currentEstrategia.indicadorIchiSignal.openLower));
+      customPrint("ichiTenkanSen=" + ichiTenkanSen);
+      customPrint("ichiKijunSen=" + ichiKijunSen);
+      customPrint("ichiSpanA=" + ichiSpanA);
+      customPrint("ichiSpanB=" + ichiSpanB);
+      customPrint("ichiChinkouSpan=" + ichiChinkouSpan);         
      }
-   if(!(difference.ichiSignalDiff<=currentEstrategia.openIchiSignalHigher))
+   if(!(difference.ichiSignalDiff<=currentEstrategia.indicadorIchiSignal.openHigher))
      {
-      customPrint("(difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalHigher="+DoubleToString(currentEstrategia.openIchiSignalHigher));
+      customPrint("(difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalHigher="+DoubleToString(currentEstrategia.indicadorIchiSignal.openHigher));
+      customPrint("ichiTenkanSen=" + ichiTenkanSen);
+      customPrint("ichiKijunSen=" + ichiKijunSen);
+      customPrint("ichiSpanA=" + ichiSpanA);
+      customPrint("ichiSpanB=" + ichiSpanB);
+      customPrint("ichiChinkouSpan=" + ichiChinkouSpan);         
      }
 
    customPrint("printSellEvaluation END");
@@ -1201,10 +1237,10 @@ void printCloseBuyEvaluation(Difference *difference,Estrategy *currentEstrategia
       customPrint("(difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendLower="+DoubleToString(currentEstrategia.closeIchiTrendLower));
         } else if(!(difference.ichiTrendDiff<=currentEstrategia.closeIchiTrendHigher)) {
       customPrint("(difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendHigher="+DoubleToString(currentEstrategia.closeIchiTrendHigher));
-        } else if(!(difference.ichiSignalDiff>=currentEstrategia.closeIchiSignalLower)) {
-      customPrint("(difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalLower="+DoubleToString(currentEstrategia.closeIchiSignalLower));
-        } else if(!(difference.ichiSignalDiff<=currentEstrategia.closeIchiSignalHigher)) {
-      customPrint("(difference.ichiSignalDiff <= currentEstrategia.closeIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalHigher="+DoubleToString(currentEstrategia.closeIchiSignalHigher));
+        } else if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.closeLower)) {
+      customPrint("(difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalLower="+DoubleToString(currentEstrategia.indicadorIchiSignal.closeLower));
+        } else if(!(difference.ichiSignalDiff<=currentEstrategia.indicadorIchiSignal.closeHigher)) {
+      customPrint("(difference.ichiSignalDiff <= currentEstrategia.closeIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalHigher="+DoubleToString(currentEstrategia.indicadorIchiSignal.closeHigher));
      }
   }
 //+------------------------------------------------------------------+
@@ -1377,13 +1413,13 @@ void printCloseSellEvaluation(Difference *difference,Estrategy *currentEstrategi
          customPrint("(difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendHigher="+DoubleToString(currentEstrategia.closeIchiTrendHigher));
         }
 
-      if(!(difference.ichiSignalDiff>=currentEstrategia.closeIchiSignalLower))
+      if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.closeLower))
         {
-         customPrint("(difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalLower="+DoubleToString(currentEstrategia.closeIchiSignalLower));
+         customPrint("(difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalLower="+DoubleToString(currentEstrategia.indicadorIchiSignal.closeLower));
         }
-      if(!(difference.ichiSignalDiff<=currentEstrategia.closeIchiSignalHigher))
+      if(!(difference.ichiSignalDiff<=currentEstrategia.indicadorIchiSignal.closeHigher))
         {
-         customPrint("(difference.ichiSignalDiff <= currentEstrategia.closeIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalHigher="+DoubleToString(currentEstrategia.closeIchiSignalHigher));
+         customPrint("(difference.ichiSignalDiff <= currentEstrategia.closeIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalHigher="+DoubleToString(currentEstrategia.indicadorIchiSignal.closeHigher));
         }
      }
    customPrint("printCloseSellEvaluation END");

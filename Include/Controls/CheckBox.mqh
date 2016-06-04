@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                     CheckBox.mqh |
-//|                   Copyright 2009-2013, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2015, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
 #include "WndContainer.mqh"
@@ -37,7 +37,7 @@ public:
    color             Color(void)         const { return(m_label.Color());        }
    bool              Color(const color value)  { return(m_label.Color(value));   }
    //--- state
-   bool              Checked(void)             { return(m_button.Pressed());     }
+   bool              Checked(void)       const { return(m_button.Pressed());     }
    bool              Checked(const bool flag)  { return(m_button.Pressed(flag)); }
    //--- data
    int               Value(void)         const { return(m_value);                }
@@ -166,7 +166,7 @@ bool CCheckBox::Load(const int file_handle)
 bool CCheckBox::OnClickButton(void)
   {
 //--- send the "changed state" event
-   EventChartCustom(m_chart_id,ON_CHANGE,m_id,0.0,m_name);
+   EventChartCustom(CONTROLS_SELF_MESSAGE,ON_CHANGE,m_id,0.0,m_name);
 //--- handled
    return(true);
   }
