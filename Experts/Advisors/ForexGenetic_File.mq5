@@ -8,9 +8,9 @@
 #property version   "1.00"
 
 #include <Trade\Trade.mqh>
-#include <Estrategy.mqh>
-#include <Difference.mqh>
-#include <GestionMonetaria.mqh>
+#include <Genetic\Estrategy.mqh>
+#include <Genetic\Difference.mqh>
+#include <Genetic\GestionMonetaria.mqh>
 
 //--- input parameters
 input string   fileName="estrategias.csv";
