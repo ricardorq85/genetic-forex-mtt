@@ -189,7 +189,7 @@ void outHistory()
          if(fileHandle!=INVALID_HANDLE)
            {
             long spread=spread_int[i];
-            if(spread<20)
+            if(spread<10)
               {
                spread=SymbolInfoInteger(Symbol(),SYMBOL_SPREAD);
                //Comment("Spread ", spread);

@@ -19,8 +19,8 @@ input bool   calculateLot=false;
 input bool   onceAtTime=true;
 input bool   reloadEstrategias=false;
 input int   numDayFortalezaEstrategia=30;
-input bool   doInactive=true;
-
+input bool   doInactive=false;
+input bool   oneByPeriod=false;
 int maHandle;
 int maCompareHandle;
 int macdHandle;
@@ -60,7 +60,7 @@ double pipsFixer=0.0;
 bool endEstrategias=false;
 datetime fileLastReadTime=NULL;
 int lastTotalPositions=0;
-
+datetime activeTime=NULL;
 int counter=1;
 Estrategy   *estrategias[];
 CTrade     *trading;
@@ -80,7 +80,7 @@ int OnInit()
    initialBalance=AccountInfoDouble(ACCOUNT_BALANCE);
    maxBalance=initialBalance;
 //---
-   return(0);
+   return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
@@ -159,7 +159,7 @@ void loadHandles()
 
    macdHandle=iMACD(_Symbol,_Period,12,26,9,PRICE_WEIGHTED);
    SetIndexBuffer(0,macdMainBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,macdSignalBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,macdSignalBuffer,INDICATOR_DATA);
    ArraySetAsSeries(macdMainBuffer,true);
    ArraySetAsSeries(macdSignalBuffer,true);
 
@@ -169,8 +169,8 @@ void loadHandles()
 
    adxHandle=iADX(_Symbol,_Period,14);
    SetIndexBuffer(0,adxMainBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,adxPlusBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,adxMinusBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,adxPlusBuffer,INDICATOR_DATA);
+   SetIndexBuffer(2,adxMinusBuffer,INDICATOR_DATA);
    ArraySetAsSeries(adxMainBuffer,true);
    ArraySetAsSeries(adxPlusBuffer,true);
    ArraySetAsSeries(adxMinusBuffer,true);
@@ -181,7 +181,7 @@ void loadHandles()
 
    bandsHandle=iBands(_Symbol,_Period,20,2,2,PRICE_WEIGHTED);
    SetIndexBuffer(0,bandsUpperBuffer,INDICATOR_DATA);
-   SetIndexBuffer(0,bandsLowerBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,bandsLowerBuffer,INDICATOR_DATA);
    ArraySetAsSeries(bandsUpperBuffer,true);
    ArraySetAsSeries(bandsLowerBuffer,true);
 
@@ -195,11 +195,15 @@ void loadHandles()
    SetIndexBuffer(2,ichiSenkouSpanABuffer,INDICATOR_DATA);
    SetIndexBuffer(3,ichiSenkouSpanBBuffer,INDICATOR_DATA);
    SetIndexBuffer(4,ichiChinkouSpanBuffer,INDICATOR_DATA);
+   ArraySetAsSeries(ichiTenkanSenBuffer,true);
+   ArraySetAsSeries(ichiKijunSenBuffer,true);
+   ArraySetAsSeries(ichiSenkouSpanABuffer,true);
+   ArraySetAsSeries(ichiSenkouSpanBBuffer,true);
+   ArraySetAsSeries(ichiChinkouSpanBuffer,true);
 
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
+
 void process()
   {
    MqlTick last_tick;
@@ -208,7 +212,7 @@ void process()
       Print("SymbolInfoTick() failed, error = "+IntegerToString(GetLastError()));
       return;
      }
-   customPrint("last_tick.time = "+last_tick.time);
+   customPrint("last_tick.time = "+IntegerToString((long)last_tick.time));
 
    processClose();
 
@@ -216,9 +220,12 @@ void process()
 
    int iCurrent=CopyRates(_Symbol,_Period,0,to_copy,rates_array);
    int iCurrentCompare=CopyRates(compare,_Period,0,to_copy,rates_array_compare);
-   datetime activeTime=rates_array[shift].time;
-   if((nextVigencia!=NULL) && (activeTime<nextVigencia))
+   activeTime=rates_array[shift].time;
+
+   customPrint("nextVigencia innn="+nextVigencia);
+   if((nextVigencia!=NULL) && (activeTime<nextVigencia) && (lastTotalPositions==0))
      {
+      customPrint("nextVigencia out="+nextVigencia);
       return;
      }
 
@@ -238,8 +245,8 @@ void process()
    CopyBuffer(ichiHandle,1,0,to_copy,ichiKijunSenBuffer);
    CopyBuffer(ichiHandle,2,0,to_copy,ichiSenkouSpanABuffer);
    CopyBuffer(ichiHandle,3,0,to_copy,ichiSenkouSpanBBuffer);
-   CopyBuffer(ichiHandle,4,26,to_copy,ichiChinkouSpanBuffer);
-   
+   CopyBuffer(ichiHandle,4,0,to_copy,ichiChinkouSpanBuffer);
+
    double ma=NormalizeDouble(maBuffer[shift],_Digits);
    double macdV = NormalizeDouble(macdMainBuffer[shift], _Digits);
    double macdS = NormalizeDouble(macdSignalBuffer[shift], _Digits);
@@ -260,32 +267,29 @@ void process()
    double ichiSpanA = NormalizeDouble(ichiSenkouSpanABuffer[shift],_Digits);
    double ichiSpanB = NormalizeDouble(ichiSenkouSpanBBuffer[shift],_Digits);
    double ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[shift],_Digits);
-   //Print("ichiChinkouSpan="+ichiChinkouSpan);
+//Print("ichiChinkouSpan="+ichiChinkouSpan);
 
    double low=NormalizeDouble(rates_array[shift].low,_Digits);
    double high=NormalizeDouble(rates_array[shift].high,_Digits);
-   string date1=TimeToString(activeTime);
+   //string date1=TimeToString(activeTime);
 
    Difference *difference=new Difference;
-   difference.maDiff=ma-last_tick.bid;
-   difference.macdDiff=macdV-macdS;
-   difference.maCompareDiff=maCompare-closeCompare;
-   difference.sarDiff = sar - last_tick.bid;
-   difference.adxDiff = adxValue * (adxPlus-adxMinus);
-   difference.rsiDiff = rsi;
-   difference.bollingerDiff= bollingerUpper-bollingerLower;
-   difference.momentumDiff = momentum;
-   difference.ichiTrendDiff = (ichiSpanA-ichiSpanB)-last_tick.bid;
-   difference.ichiSignalDiff = ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen);
+   difference.maDiff=NormalizeDouble(ma-last_tick.bid,_Digits);
+   difference.macdDiff=NormalizeDouble(macdV-macdS,_Digits);
+   difference.maCompareDiff=NormalizeDouble(maCompare-closeCompare,_Digits);
+   difference.sarDiff = NormalizeDouble(sar - last_tick.bid,_Digits);
+   difference.adxDiff = NormalizeDouble(adxValue * (adxPlus-adxMinus),_Digits);
+   difference.rsiDiff = NormalizeDouble(rsi,_Digits);
+   difference.bollingerDiff= NormalizeDouble(bollingerUpper-bollingerLower,_Digits);
+   difference.momentumDiff = NormalizeDouble(momentum,_Digits);
+   difference.ichiTrendDiff= NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid,_Digits);
+   difference.ichiSignalDiff=NormalizeDouble(ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen),_Digits);
 
    int openPositionByProcess=1;
    double minLot=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
    double maxLot=SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
-
-   for(int i=ArraySize(estrategias)-1; i>=0; i--)
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
+   customPrint("BEGINNNNN    XXXXX");
+   for(int i=0; i<ArraySize(estrategias); i++)
      {
       if(PositionSelect(_Symbol))
         {
@@ -296,18 +300,18 @@ void process()
         }
 
       Estrategy *currentEstrategia=estrategias[i];
+      nextVigencia(currentEstrategia, activeTime);
       customPrint("currentEstrategia.EstrategiaId="+currentEstrategia.EstrategiaId+" currentEstrategia.active="+currentEstrategia.active);
-      if((currentEstrategia.active) && (currentEstrategia.VigenciaHigher<activeTime))
+      if(((!currentEstrategia.active) || (currentEstrategia.VigenciaLower>activeTime)) && (!currentEstrategia.open))
         {
-         //Print("currentEstrategia.VigenciaHigher="+currentEstrategia.VigenciaHigher+" activeTime="+activeTime);
-         currentEstrategia.active=!doInactive;
-        }
-      if(!currentEstrategia.active)
-        {
+         customPrint("currentEstrategia.VigenciaLower="+currentEstrategia.VigenciaLower+" activeTime="+activeTime);
          continue;
         }
-      nextVigencia(currentEstrategia,activeTime);
-      printCloseBuyEvaluation(difference,currentEstrategia,low-last_tick.bid);
+      customPrint("END    XXXXX");
+      if(print)
+        {
+         printCloseBuyEvaluation(difference,currentEstrategia,low-last_tick.bid);
+        }
       if((currentEstrategia.open==true)
          && (currentEstrategia.orderType==ORDER_TYPE_BUY)
          && (currentEstrategia.closeIndicator==true)
@@ -338,7 +342,8 @@ void process()
          if(PositionSelect(_Symbol))
            {
             string comment=PositionGetString(POSITION_COMMENT);
-            if(comment==currentEstrategia.EstrategiaId)
+            if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
+               //if(comment==currentEstrategia.EstrategiaId)
               {
                trading.PositionClose(_Symbol);
                currentEstrategia.openDate=NULL;
@@ -346,10 +351,13 @@ void process()
            }
         }
 
-      difference.maDiff=ma-last_tick.ask;
-      difference.sarDiff=sar-last_tick.ask;
-      difference.ichiTrendDiff=(ichiSpanA-ichiSpanB)-last_tick.ask;
-      printCloseSellEvaluation(difference,currentEstrategia,low-last_tick.bid);
+      difference.maDiff=NormalizeDouble(ma-last_tick.ask,_Digits);
+      difference.sarDiff=NormalizeDouble(sar-last_tick.ask,_Digits);
+      difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.ask,_Digits);      
+      if(print)
+        {
+         printCloseSellEvaluation(difference,currentEstrategia,low-last_tick.bid);
+        }
       if((currentEstrategia.open==true)
          && (currentEstrategia.orderType==ORDER_TYPE_SELL)
          && (currentEstrategia.closeIndicator==true)
@@ -380,18 +388,34 @@ void process()
          if(PositionSelect(_Symbol))
            {
             string comment=PositionGetString(POSITION_COMMENT);
-            if(comment==currentEstrategia.EstrategiaId)
+            //if(comment==currentEstrategia.EstrategiaId)
+            if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
               {
                trading.PositionClose(_Symbol);
                currentEstrategia.openDate=NULL;
               }
            }
         }
+      if((nextVigencia!=NULL) && (activeTime<nextVigencia) && (lastTotalPositions==0))
+        {
+         customPrint("nextVigencia out 2="+nextVigencia);
+         return;
+        }
+
+      if((currentEstrategia.active) && (currentEstrategia.VigenciaHigher<activeTime) && (!currentEstrategia.open))
+        {
+         customPrint("currentEstrategia.VigenciaHigher="+currentEstrategia.VigenciaHigher+" activeTime="+activeTime);
+         currentEstrategia.active=false;
+         nextVigencia=NULL;
+        }
+
 
       if(endEstrategias)
         {
          continue;
         }
+        
+
       if(currentEstrategia.open==false)
         {
          if(currentEstrategia.pair!=Symbol())
@@ -401,7 +425,7 @@ void process()
            }
          if(!((activeTime>=currentEstrategia.VigenciaLower) && (activeTime<=currentEstrategia.VigenciaHigher)))
            {
-            customPrint("1.2 activeTime=" + activeTime + " currentEstrategia.VigenciaLower=" + currentEstrategia.VigenciaLower + " currentEstrategia.VigenciaHigher="+currentEstrategia.VigenciaHigher);
+            customPrint("1.2 activeTime="+activeTime+" currentEstrategia.VigenciaLower="+currentEstrategia.VigenciaLower+" currentEstrategia.VigenciaHigher="+currentEstrategia.VigenciaHigher);
             string dateVigencia1 = TimeToString(currentEstrategia.VigenciaLower);
             string dateVigencia2 = TimeToString(currentEstrategia.VigenciaHigher);
             string dateActive=TimeToString(activeTime);
@@ -410,20 +434,23 @@ void process()
          customPrint("1.3");
          customPrint("2");
 
-         difference.maDiff=ma-last_tick.ask;
-         difference.macdDiff=macdV-macdS;
-         difference.maCompareDiff=maCompare-closeCompare;
-         difference.sarDiff = sar - last_tick.ask;
-         difference.adxDiff = adxValue*(adxPlus-adxMinus);
-         difference.rsiDiff = rsi;
-         difference.bollingerDiff= bollingerUpper-bollingerLower;
-         difference.momentumDiff = momentum;
-         difference.ichiTrendDiff=(ichiSpanA-ichiSpanB)-last_tick.ask;
-         difference.ichiSignalDiff=ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen);
+         difference.maDiff=NormalizeDouble(ma-last_tick.ask,_Digits);
+         difference.macdDiff=NormalizeDouble(macdV-macdS,_Digits);
+         difference.maCompareDiff=NormalizeDouble(maCompare-closeCompare,_Digits);
+         difference.sarDiff = NormalizeDouble(sar - last_tick.ask,_Digits);
+         difference.adxDiff = NormalizeDouble(adxValue*(adxPlus-adxMinus),_Digits);
+         difference.rsiDiff = NormalizeDouble(rsi,_Digits);
+         difference.bollingerDiff= NormalizeDouble(bollingerUpper-bollingerLower,_Digits);
+         difference.momentumDiff = NormalizeDouble(momentum,_Digits);
+         difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.ask,_Digits);
+         difference.ichiSignalDiff=NormalizeDouble(ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen),_Digits);
 
          customPrint("3");
 
-         printBuyEvaluation(difference,currentEstrategia,last_tick.ask-high);
+         if(print)
+           {
+            printBuyEvaluation(difference,currentEstrategia,last_tick.ask-high);
+           }
          if((currentEstrategia.open==false)
             && (currentEstrategia.orderType==ORDER_TYPE_BUY))
            {
@@ -450,10 +477,17 @@ void process()
                && (difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher)
                )
               {
+               if(endEstrategias && (oneByPeriod || onceAtTime))
+                 {
+                  customPrint("(endEstrategias && oneByPeriod && onceAtTime)-->currentEstrategia.active=false");
+                  currentEstrategia.active=false;
+                  nextVigencia=NULL;
+                  continue;
+                 }
                double lot=currentEstrategia.Lote;
-               double lotCalc=nextLot(currentEstrategia);
                if(calculateLot)
                  {
+                  double lotCalc=nextLot(currentEstrategia);
                   lot=lotCalc;
                  }
                if(currentEstrategia.active)
@@ -465,13 +499,18 @@ void process()
                        {
                         lot=NormalizeDouble(MathMax(lot/openPositionByProcess,minLot),2);
                        }
-                     executed=trading.PositionOpen(_Symbol,ORDER_TYPE_BUY,lot,last_tick.ask,last_tick.ask-currentEstrategia.StopLoss*_Point,last_tick.ask+currentEstrategia.TakeProfit*_Point,currentEstrategia.EstrategiaId);
+                     executed=trading.PositionOpen(_Symbol,ORDER_TYPE_BUY,lot,last_tick.ask,last_tick.ask-currentEstrategia.StopLoss*_Point,last_tick.ask+currentEstrategia.TakeProfit*_Point,currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId);
                      if(executed)
                        {
                         currentEstrategia.openDate=activeTime;
+                        if(oneByPeriod)
+                          {
+                           currentEstrategia.active=false;
+                           nextVigencia=NULL;
+                          }
                         openPositionByProcess++;
                         endEstrategias=onceAtTime;
-                        customPrint("Orden de compra creada. Bid="+last_tick.bid+" Ask="+last_tick.ask+" Last="+last_tick.last+" Spread="+SymbolInfoInteger(Symbol(),SYMBOL_SPREAD));
+                        Print("Orden de compra creada. "+currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId+"Bid="+last_tick.bid+" Ask="+last_tick.ask+" Last="+last_tick.last+" Spread="+SymbolInfoInteger(Symbol(),SYMBOL_SPREAD));
                           }else{
                         if(trading.ResultRetcode()==TRADE_RETCODE_NO_MONEY)
                           {
@@ -479,19 +518,26 @@ void process()
                              }else{
                            executed=true;
                           }
-                        customPrint("Error al crear orden de compra. Lote="+DoubleToString(lot)+"-TakeProfit="+DoubleToString(currentEstrategia.TakeProfit)+"-Stoploss="+DoubleToString(currentEstrategia.StopLoss));
+                        Print("Error al crear orden de compra "+currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId+" Lote="+DoubleToString(lot)+"-TakeProfit="+DoubleToString(currentEstrategia.TakeProfit)+"-Stoploss="+DoubleToString(currentEstrategia.StopLoss));
                        }
                     }
                  }
+               lastTime=activeTime;
+               customPrint("lastTime="+lastTime);
               }
            }
 
-         difference.maDiff=ma-last_tick.bid;
-         difference.sarDiff=sar-last_tick.bid;
-         difference.ichiTrendDiff=(ichiSpanA-ichiSpanB)-last_tick.bid;
-         customPrint("4.0 ichiSpanA=" + ichiSpanA + " ichiSpanB=" + ichiSpanB + " last_tick.bid=" + last_tick.bid);
-
-         printSellEvaluation(difference,currentEstrategia,low-last_tick.bid);
+         difference.maDiff=NormalizeDouble(ma-last_tick.bid,_Digits);
+         difference.sarDiff=NormalizeDouble(sar-last_tick.bid,_Digits);
+         difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid,_Digits);
+         //Print("4.0 ichiSpanA="+ichiSpanA+";ichiSpanB="+ichiSpanB+";last_tick.bid="+last_tick.bid+";difference.ichiTrendDiff="+difference.ichiTrendDiff);
+         //Print("4.0.1 currentEstrategia.openIchiTrendLower="+currentEstrategia.openIchiTrendLower);
+         if(print)
+           {           
+            if (currentEstrategia.EstrategiaId=="1342064824281.87571"){
+               printSellEvaluation(difference,currentEstrategia,low-last_tick.bid);
+               }
+           }
          if((currentEstrategia.open==false)
             && (currentEstrategia.orderType==ORDER_TYPE_SELL))
            {
@@ -518,10 +564,17 @@ void process()
                && (difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher)
                )
               {
+               if(endEstrategias && (oneByPeriod || onceAtTime))
+                 {
+                  customPrint("(endEstrategias && oneByPeriod && onceAtTime)-->currentEstrategia.active=false");
+                  //currentEstrategia.active=false;
+                  nextVigencia=NULL;
+                  continue;
+                 }
                double lot=currentEstrategia.Lote;
-               double lotCalc=nextLot(currentEstrategia);
                if(calculateLot)
                  {
+                  double lotCalc=nextLot(currentEstrategia);
                   lot=lotCalc;
                  }
                if(currentEstrategia.active)
@@ -529,14 +582,21 @@ void process()
                   bool executed=false;
                   while(!executed)
                     {
-                     //Print("TEST ma="+ma+" maCompare="+maCompare+" macdV="+macdV+" macdS="+macdS+" sar="+sar+" adxValue="+adxValue+" adxPlus="+adxPlus+" adxMinus="+adxMinus+" rsi="+rsi+" bollingerUpper="+bollingerUpper+" bollingerLower="+bollingerLower+" momentum="+momentum);
-                     executed=trading.PositionOpen(_Symbol,ORDER_TYPE_SELL,lot,last_tick.bid,last_tick.bid+currentEstrategia.StopLoss*_Point,last_tick.bid-currentEstrategia.TakeProfit*_Point,currentEstrategia.EstrategiaId);
+                     //Print("TEST ma="+ma+" maCompare="+maCompare+" difference.maCompareDiff="+difference.maCompareDiff+" closeCompare="+closeCompare+" macdV="+macdV+" macdS="+macdS+" sar="+sar+" adxValue="+adxValue+" adxPlus="+adxPlus+" adxMinus="+adxMinus+" rsi="+rsi+" bollingerUpper="+bollingerUpper+" bollingerLower="+bollingerLower+" momentum="+momentum);
+                     //Print("TEST 2 currentEstrategia.openMaCompareLower="+currentEstrategia.openMaCompareLower+" currentEstrategia.openMaCompareHigher="+currentEstrategia.openMaCompareLower);
+                     
+                     executed=trading.PositionOpen(_Symbol,ORDER_TYPE_SELL,lot,last_tick.bid,last_tick.bid+currentEstrategia.StopLoss*_Point,last_tick.bid-currentEstrategia.TakeProfit*_Point,currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId);
                      if(executed)
                        {
                         currentEstrategia.openDate=activeTime;
+                        if(oneByPeriod)
+                          {
+                           currentEstrategia.active=false;
+                           nextVigencia=NULL;
+                          }
                         openPositionByProcess++;
                         endEstrategias=onceAtTime;
-                        customPrint("Orden de venta creada. Bid="+last_tick.bid+" Ask="+last_tick.ask+" Last="+last_tick.last+" Spread="+IntegerToString(SymbolInfoInteger(Symbol(),SYMBOL_SPREAD)));
+                        Print("Orden de venta creada."+currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId+" Bid="+last_tick.bid+" Ask="+last_tick.ask+" Last="+last_tick.last+" Spread="+IntegerToString(SymbolInfoInteger(Symbol(),SYMBOL_SPREAD)));
                           }else{
                         if(trading.ResultRetcode()==TRADE_RETCODE_NO_MONEY)
                           {
@@ -544,7 +604,7 @@ void process()
                              }else{
                            executed=true;
                           }
-                        customPrint("Error al crear orden de venta. "+"Error code "+IntegerToString(GetLastError())+" Lote="+DoubleToString(lot)+"-TakeProfit="+DoubleToString(currentEstrategia.TakeProfit)+"-Stoploss="+DoubleToString(currentEstrategia.StopLoss));
+                        Print("Error al crear orden de venta. "+currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId+" Error code "+IntegerToString(GetLastError())+" Lote="+DoubleToString(lot)+"-TakeProfit="+DoubleToString(currentEstrategia.TakeProfit)+"-Stoploss="+DoubleToString(currentEstrategia.StopLoss));
                        }
                     }
                  }
@@ -566,6 +626,7 @@ void loadEstrategias()
    Print("TERMINAL_COMMONDATA_PATH = ",TerminalInfoString(TERMINAL_COMMONDATA_PATH));
    ResetLastError();
    string fullFileName = "estrategias\\"+fileName;
+   //string fullFileName = fileName;
    datetime modifyTime = FileGetInteger(fullFileName, FILE_MODIFY_DATE,true);
 
    if((fileLastReadTime!=NULL) && (modifyTime<=fileLastReadTime))
@@ -586,9 +647,10 @@ void loadEstrategias()
            {
             i--;
               } else {
-            Print("Estrategia"+IntegerToString(i)+str);
+            Print("Estrategia String:"+IntegerToString(i)+" "+str);
             Estrategy *estrategy=new Estrategy;
             estrategy.initEstrategias(str,i+1);
+            Print("Estrategia cargada:"+IntegerToString(i)+" "+estrategy.toString());
 /*if(estrategy.Index>ArraySize(estrategias)) 
               {
                ArrayResize(estrategias,estrategy.Index+i+1);
@@ -619,9 +681,6 @@ void processClose()
      {
       endEstrategias=false;
         }else {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
       endEstrategias=onceAtTime;
      }
    customPrint("5: PositionsTotal="+IntegerToString(positionsTotal)+" LastPositionsTotal="+IntegerToString(lastTotalPositions));
@@ -630,21 +689,25 @@ void processClose()
 //+------------------------------------------------------------------+
    if(lastTotalPositions!=positionsTotal)
      {
-      customPrint("5.0");
+      Print("Balance="+AccountInfoDouble(ACCOUNT_BALANCE));
+      customPrint("close 5.0");
       Estrategy *currentEstrategia=NULL;
       for(int i=0; i<ArraySize(estrategias); i++)
         {
          currentEstrategia=estrategias[i];
          currentEstrategia.open=false;
-         customPrint("5.1");
+         customPrint("close 5.1");
          if(positionsTotal!=0)
            {
             if(PositionSelect(currentEstrategia.pair))
               {
-               ENUM_ORDER_TYPE orderType=((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE));
-               if(currentEstrategia.orderType==orderType)
+               string comment=PositionGetString(POSITION_COMMENT);
+               //ENUM_ORDER_TYPE orderType=((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE));
+               //if(currentEstrategia.orderType==orderType)
+               if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
                  {
-                  customPrint("5.2");
+                  customPrint("close 5.2.1 "+comment);
+                  customPrint("close 5.2 "+currentEstrategia.EstrategiaId);
                   currentEstrategia.open=true;
                  }
               }
@@ -665,47 +728,39 @@ double exponent(double base,int exponent)
      }
    return(value);
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
 void customPrint(string str)
-  {
+  {     
    if(print)
      {
+     if ((activeTime>StringToTime("2012.08.21 08:12")) && (activeTime<StringToTime("2012.08.23 00:00"))){
       Print(str);
+      }
      }
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
-
 
 void nextVigencia(Estrategy *currentEstrategia,datetime time)
   {
-   if(nextVigencia==NULL)
+   if(currentEstrategia.active)
      {
-      nextVigencia=currentEstrategia.VigenciaLower;
-        }else {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
-      if(nextVigencia>currentEstrategia.VigenciaLower)
+      if(nextVigencia==NULL)
         {
-         if((time>=currentEstrategia.VigenciaLower) && (time<=currentEstrategia.VigenciaHigher))
+         nextVigencia=currentEstrategia.VigenciaLower;
+           }else {
+         if(nextVigencia>currentEstrategia.VigenciaLower)
            {
-            nextVigencia=currentEstrategia.VigenciaLower;
-              }else {
-            if(currentEstrategia.VigenciaLower>time)
+            if((time>=currentEstrategia.VigenciaLower) && (time<=currentEstrategia.VigenciaHigher))
               {
                nextVigencia=currentEstrategia.VigenciaLower;
+                 }else {
+               if(currentEstrategia.VigenciaLower>time)
+                 {
+                  nextVigencia=currentEstrategia.VigenciaLower;
+                 }
               }
            }
         }
      }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    if(time>nextVigencia)
      {
       nextVigencia=time;
@@ -938,28 +993,17 @@ void printBuyEvaluation(Difference *difference,Estrategy *currentEstrategia,doub
       customPrint("(difference.ichiSignalDiff <= currentEstrategia.openIchiSignalHigher) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalHigher="+DoubleToString(currentEstrategia.openIchiSignalHigher));
      }
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
 void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,double pipsComparer)
   {
    customPrint("printSellEvaluation");
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    if(!(currentEstrategia.open==false))
      {
       customPrint("((sellActiveOperation[index] == false) FAILED");
         }else if(!(currentEstrategia.orderType==ORDER_TYPE_SELL)) {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
       customPrint("(currentEstrategia.orderType==ORDER_TYPE_SELL) FAILED");
       //} else if(!(pipsComparer<=pipsFixer)) {
-      //customPrint("((low-last_tick.bid)<=pipsFixer) FAILED");
+      customPrint("((low-last_tick.bid)<=pipsFixer) FAILED");
      }
    if(!(difference.maDiff>=currentEstrategia.openMaLower))
      {
@@ -971,9 +1015,6 @@ void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,dou
      }
    if(!(difference.macdDiff>=currentEstrategia.openMacdLower))
      {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
       customPrint("(difference.macdDiff >= currentEstrategia.openMacdLower) FAILED");
      }
 //+------------------------------------------------------------------+
@@ -1074,7 +1115,7 @@ void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,dou
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.bollingerDiff >= currentEstrategia.openBollingerLower) FAILED");
+      customPrint("(difference.bollingerDiff >= currentEstrategia.openBollingerLower) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.openBollingerLower="+DoubleToString(currentEstrategia.openBollingerLower));
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1084,7 +1125,7 @@ void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,dou
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.bollingerDiff <= currentEstrategia.openBollingerHigher) FAILED");
+      customPrint("(difference.bollingerDiff <= currentEstrategia.openBollingerHigher) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.openBollingerHigher="+DoubleToString(currentEstrategia.openBollingerHigher));
      }
    if(!(difference.momentumDiff>=currentEstrategia.openMomentumLower))
      {
@@ -1113,9 +1154,7 @@ void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,dou
 
    customPrint("printSellEvaluation END");
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
 void printCloseBuyEvaluation(Difference *difference,Estrategy *currentEstrategia,double pipsComparer)
   {
 
@@ -1183,7 +1222,7 @@ void printCloseSellEvaluation(Difference *difference,Estrategy *currentEstrategi
         }else if(!(currentEstrategia.orderType==ORDER_TYPE_SELL)) {
       customPrint("(currentEstrategia.orderType==ORDER_TYPE_SELL) FAILED");
       //} else if(!(pipsComparer<=pipsFixer)) {
-      //customPrint("((low-last_tick.bid)<=pipsFixer) FAILED");
+      customPrint("((low-last_tick.bid)<=pipsFixer) FAILED");
         }else {
       if(!(difference.maDiff>=currentEstrategia.closeMaLower))
         {
