@@ -13,8 +13,9 @@
 #property script_show_inputs
 
 input string  compare="EURUSD";
-input string  fechaInicio="2009.01.01 00:00";
-input string  fechaCorte="2013.01.01 00:00";
+input string  fechaInicio="2008.05.06 08:44";
+//input string  fechaInicio="2008.05.06 08:45";
+input string  fechaCorte="2015.02.02 02:42";
 //+------------------------------------------------------------------+
 //| Script program start function                                    |
 //+------------------------------------------------------------------+
@@ -36,6 +37,24 @@ double ichiKijunSenBuffer[];
 double ichiSenkouSpanABuffer[];
 double ichiSenkouSpanBBuffer[];
 double ichiChinkouSpanBuffer[];
+double ma1200Buffer[];
+double macd20xMainBuffer[];
+double macd20xSignalBuffer[];
+double maCompare1200Buffer[];
+//------------------
+double sar1200Buffer[];
+double adxMain168Buffer[];
+double adxPlus168Buffer[];
+double adxMinus168Buffer[];
+double rsi84Buffer[];
+double bandsUpper240Buffer[];
+double bandsLower240Buffer[];
+double momentum1200Buffer[];
+double ichiTenkanSen6Buffer[];
+double ichiKijunSen6Buffer[];
+double ichiSenkouSpanA6Buffer[];
+double ichiSenkouSpanB6Buffer[];
+double ichiChinkouSpan6Buffer[];
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -83,7 +102,7 @@ void  OnStart()
    SetIndexBuffer(0,rsiBuffer,INDICATOR_DATA);
    CopyBuffer(rsiHandle,0,0,to_copy,rsiBuffer);
    ArraySetAsSeries(rsiBuffer,true);
-
+ 
    int bandsHandle=iBands(_Symbol,_Period,20,2,2,PRICE_WEIGHTED);
    SetIndexBuffer(1,bandsUpperBuffer,INDICATOR_DATA);
    SetIndexBuffer(2,bandsLowerBuffer,INDICATOR_DATA);
@@ -114,6 +133,77 @@ void  OnStart()
    ArraySetAsSeries(ichiSenkouSpanBBuffer,true);
    ArraySetAsSeries(ichiChinkouSpanBuffer,true);
 
+   int ma1200Handle=iMA(_Symbol,_Period,1200,0,MODE_SMA,PRICE_WEIGHTED);
+   SetIndexBuffer(0,ma1200Buffer,INDICATOR_DATA);
+   CopyBuffer(ma1200Handle,0,0,to_copy,ma1200Buffer);
+   ArraySetAsSeries(ma1200Buffer,true);
+
+   int macd20xHandle=iMACD(_Symbol,_Period,240,529,180,PRICE_WEIGHTED);
+   SetIndexBuffer(0,macd20xMainBuffer,INDICATOR_DATA);
+   SetIndexBuffer(1,macd20xSignalBuffer,INDICATOR_DATA);
+   CopyBuffer(macd20xHandle,0,0,to_copy,macd20xMainBuffer);
+   CopyBuffer(macd20xHandle,1,0,to_copy,macd20xSignalBuffer);
+   ArraySetAsSeries(macd20xMainBuffer,true);
+   ArraySetAsSeries(macd20xSignalBuffer,true);
+
+   int maCompare1200Handle=iMA(compare,_Period,1200,0,MODE_SMA,PRICE_WEIGHTED);
+   SetIndexBuffer(0,maCompare1200Buffer,INDICATOR_DATA);
+   CopyBuffer(maCompare1200Handle,0,0,to_copy,maCompare1200Buffer);
+   ArraySetAsSeries(maCompare1200Buffer,true);
+
+   //---------------
+   
+   int sar1200Handle=iSAR(_Symbol,_Period,24,240);
+   SetIndexBuffer(0,sar1200Buffer,INDICATOR_DATA);
+   CopyBuffer(sar1200Handle,0,0,to_copy,sar1200Buffer);
+   ArraySetAsSeries(sar1200Buffer,true);
+
+   int adx168Handle=iADX(_Symbol,_Period,168);
+   SetIndexBuffer(0,adxMain168Buffer,INDICATOR_DATA);
+   SetIndexBuffer(1,adxPlus168Buffer,INDICATOR_DATA);
+   SetIndexBuffer(2,adxMinus168Buffer,INDICATOR_DATA);
+   CopyBuffer(adx168Handle,0,0,to_copy,adxMain168Buffer);
+   CopyBuffer(adx168Handle,1,0,to_copy,adxPlus168Buffer);
+   CopyBuffer(adx168Handle,2,0,to_copy,adxMinus168Buffer);
+   ArraySetAsSeries(adxMain168Buffer,true);
+   ArraySetAsSeries(adxPlus168Buffer,true);
+   ArraySetAsSeries(adxMinus168Buffer,true);
+
+   int rsi84Handle=iRSI(_Symbol,_Period,84,PRICE_WEIGHTED);
+   SetIndexBuffer(0,rsi84Buffer,INDICATOR_DATA);
+   CopyBuffer(rsi84Handle,0,0,to_copy,rsi84Buffer);
+   ArraySetAsSeries(rsi84Buffer,true);
+
+   int bands240Handle=iBands(_Symbol,_Period,240,24,24,PRICE_WEIGHTED);
+   SetIndexBuffer(1,bandsUpper240Buffer,INDICATOR_DATA);
+   SetIndexBuffer(2,bandsLower240Buffer,INDICATOR_DATA);
+   CopyBuffer(bands240Handle,1,0,to_copy,bandsUpper240Buffer);
+   CopyBuffer(bands240Handle,2,0,to_copy,bandsLower240Buffer);
+   ArraySetAsSeries(bandsUpper240Buffer,true);
+   ArraySetAsSeries(bandsLower240Buffer,true);
+
+   int momentum1200Handle=iMomentum(_Symbol,_Period,16800,PRICE_WEIGHTED);
+   SetIndexBuffer(0,momentum1200Buffer,INDICATOR_DATA);
+   CopyBuffer(momentum1200Handle,0,0,to_copy,momentum1200Buffer);
+   ArraySetAsSeries(momentum1200Buffer,true);
+   
+   int ichi6Handle=iIchimoku(_Symbol,_Period,54,156,312);
+   SetIndexBuffer(0,ichiTenkanSen6Buffer,INDICATOR_DATA);
+   SetIndexBuffer(1,ichiKijunSen6Buffer,INDICATOR_DATA);
+   SetIndexBuffer(2,ichiSenkouSpanA6Buffer,INDICATOR_DATA);
+   SetIndexBuffer(3,ichiSenkouSpanB6Buffer,INDICATOR_DATA);
+   SetIndexBuffer(4,ichiChinkouSpan6Buffer,INDICATOR_DATA);
+   CopyBuffer(ichi6Handle,0,0,to_copy,ichiTenkanSen6Buffer);
+   CopyBuffer(ichi6Handle,1,0,to_copy,ichiKijunSen6Buffer);
+   CopyBuffer(ichi6Handle,2,0,to_copy,ichiSenkouSpanA6Buffer);
+   CopyBuffer(ichi6Handle,3,0,to_copy,ichiSenkouSpanB6Buffer);
+   CopyBuffer(ichi6Handle,4,0,to_copy,ichiChinkouSpan6Buffer);
+   ArraySetAsSeries(ichiTenkanSen6Buffer,true);
+   ArraySetAsSeries(ichiKijunSen6Buffer,true);
+   ArraySetAsSeries(ichiSenkouSpanA6Buffer,true);
+   ArraySetAsSeries(ichiSenkouSpanB6Buffer,true);
+   ArraySetAsSeries(ichiChinkouSpan6Buffer,true);
+   
    outHistory();
   }
 //+------------------------------------------------------------------+
@@ -175,7 +265,12 @@ void outHistory()
                          ", Average(60) "+compare+
                          ", SAR(0.02;0.2), ADX Value, ADX Plus, ADX Minus, RSI(28)"+
                          ", Bollinger Upper(20;2), Bollinger Lower(20;2)"+
-                         ", Momentum(28), IchimokuTenkanSen, IchimokuKijunSen, IchimokuSenkouSpanA, IchimokuSenkpuSpanB, IchimokuChinkouSpan");
+                         ", Momentum(28), IchimokuTenkanSen, IchimokuKijunSen, IchimokuSenkouSpanA, IchimokuSenkpuSpanB, IchimokuChinkouSpan"+
+                         ", Ma1200, MACD20x Value, MACD20x Signal, Average(1200) "+compare+
+                         ", SAR(24;240), ADX168 Value, ADX168 Plus, ADX168 Minus, RSI(84)"+
+                         ", Bollinger Upper(240;24;24), Bollinger Lower(240;24;24)"+
+                         ", Momentum(1200x), IchimokuTenkanSen6x, IchimokuKijunSen6x, IchimokuSenkouSpanA6x, IchimokuSenkpuSpanB6x, IchimokuChinkouSpan6x"
+                         );
                fileCounter++;
 
                  }else {
@@ -196,6 +291,7 @@ void outHistory()
               }
             double closeCompare=0.0;
             double maCompare=0.0;
+            double maCompare1200=0.0;
             for(; j>=0; j--)
               {
                if(rates_array[i].time<rates_array_compare[j].time)
@@ -204,6 +300,7 @@ void outHistory()
                     }else if(rates_array[i].time==rates_array_compare[j].time) {
                   closeCompare=rates_array_compare[j].close;
                   maCompare=maCompareBuffer[j];
+                  maCompare1200=maCompare1200Buffer[j];
                  }
               }
 
@@ -226,7 +323,24 @@ void outHistory()
                       (i<ArraySize(ichiKijunSenBuffer))?(NormalizeDouble(ichiKijunSenBuffer[i],_Digits)) : 0,
                       (i<ArraySize(ichiSenkouSpanABuffer))?(NormalizeDouble(ichiSenkouSpanABuffer[i],_Digits)) : 0,
                       (i<ArraySize(ichiSenkouSpanBBuffer))?(NormalizeDouble(ichiSenkouSpanBBuffer[i],_Digits)) : 0,
-                      (i<ArraySize(ichiChinkouSpanBuffer))?(NormalizeDouble(ichiChinkouSpanBuffer[i],_Digits)) : 0
+                      (i<ArraySize(ichiChinkouSpanBuffer))?(NormalizeDouble(ichiChinkouSpanBuffer[i],_Digits)) : 0,
+                      (i<ArraySize(ma1200Buffer))?(NormalizeDouble(ma1200Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(macd20xMainBuffer))?(NormalizeDouble(macd20xMainBuffer[i],_Digits)) : 0,
+                      (i<ArraySize(macd20xSignalBuffer))?(NormalizeDouble(macd20xSignalBuffer[i],_Digits)) : 0,
+                      maCompare1200,
+                      (i<ArraySize(sar1200Buffer))?(NormalizeDouble(sar1200Buffer[i],_Digits)) : 0,
+                      (i < ArraySize(adxMain168Buffer))? (NormalizeDouble(adxMain168Buffer[i],_Digits)) : 0,
+                      (i < ArraySize(adxPlus168Buffer))? (NormalizeDouble(adxPlus168Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(adxMinus168Buffer))?(NormalizeDouble(adxMinus168Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(rsi84Buffer))?(NormalizeDouble(rsi84Buffer[i],_Digits)) : 0,
+                      (i < ArraySize(bandsUpper240Buffer))? (NormalizeDouble(bandsUpper240Buffer[i],_Digits)) : 0,
+                      (i < ArraySize(bandsLower240Buffer))? (NormalizeDouble(bandsLower240Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(momentum1200Buffer))?(NormalizeDouble(momentum1200Buffer[i],_Digits)) : 0,                      
+                      (i<ArraySize(ichiTenkanSen6Buffer))?(NormalizeDouble(ichiTenkanSen6Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(ichiKijunSen6Buffer))?(NormalizeDouble(ichiKijunSen6Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(ichiSenkouSpanA6Buffer))?(NormalizeDouble(ichiSenkouSpanA6Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(ichiSenkouSpanB6Buffer))?(NormalizeDouble(ichiSenkouSpanB6Buffer[i],_Digits)) : 0,
+                      (i<ArraySize(ichiChinkouSpan6Buffer))?(NormalizeDouble(ichiChinkouSpan6Buffer[i],_Digits)) : 0
                       );
               }else {
             Comment("Operation FileOpen failed, error ",GetLastError());

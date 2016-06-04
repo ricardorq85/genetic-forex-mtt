@@ -24,6 +24,7 @@ public:
 
                      Indicador();
                     ~Indicador();
+   bool              open(double value);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -38,3 +39,12 @@ Indicador::~Indicador()
   {
   }
 //+------------------------------------------------------------------+
+
+bool Indicador::open(double value) {
+   bool val = false;
+
+   val = ((!hasOpen)
+                  || ((value>=openLower)
+                  && (value<=openHigher)));
+   return val;
+}
