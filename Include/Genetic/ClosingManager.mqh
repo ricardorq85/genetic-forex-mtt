@@ -28,6 +28,7 @@ public:
   void closeByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, 
          datetime activeTime, ENUM_ORDER_TYPE orderType);  
    void closeByCantidadVigencia(CTrade *trading, Estrategy *estrategiaOpenPosition, int cantidad, datetime activeTime);        
+   void close(CTrade *trading, Estrategy *estrategiaOpenPosition);
   };
   
 ClosingManager::ClosingManager()
@@ -40,6 +41,11 @@ ClosingManager::~ClosingManager()
    gm = new GestionMonetaria();
   } 
   
+void ClosingManager::close(CTrade *trading, Estrategy *estrategiaOpenPosition) {
+   trading.PositionClose(_Symbol);
+   estrategiaOpenPosition.openDate=NULL;
+   estrategiaOpenPosition.open = false;
+}
   
 void ClosingManager::closeByCantidadVigencia(CTrade *trading, Estrategy *estrategiaOpenPosition, int cantidad, datetime activeTime) {   
    if(PositionSelect(_Symbol)) {
@@ -62,66 +68,27 @@ void ClosingManager::closeByCantidadVigencia(CTrade *trading, Estrategy *estrate
 }  
 
 void ClosingManager::closeByIndicator(CTrade *trading, Estrategy *currentEstrategia, 
-         Difference *difference, datetime activeTime, ENUM_ORDER_TYPE orderType)
-  {
-	if (orderType==ORDER_TYPE_BUY) {
-//		closeBuyByIndicator
-	} else if (orderType==ORDER_TYPE_SELL) {
-		closeSellByIndicator(trading, currentEstrategia, difference, activeTime);
-	}	
-  }
-
-
-void ClosingManager::closeSellByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, datetime activeTime) {
-      if((currentEstrategia.open==true)
-         && (currentEstrategia.orderType==ORDER_TYPE_SELL)
-         && (currentEstrategia.closeIndicator==true)
-         && (currentEstrategia.openDate!=activeTime)
-         && (!currentEstrategia.indicadorMa.hasClose
-            || ((difference.maDiff >= currentEstrategia.indicadorMa.closeLower)
-            && (difference.maDiff <= currentEstrategia.indicadorMa.closeHigher)))
-         && (!currentEstrategia.indicadorMacd.hasClose
-            || ((difference.macdDiff >= currentEstrategia.indicadorMacd.closeLower)
-            && (difference.macdDiff <= currentEstrategia.indicadorMacd.closeHigher)))
-         && (!currentEstrategia.indicadorMaCompare.hasClose
-            || ((difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.closeLower)
-            && (difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.closeHigher)))
-         && (!currentEstrategia.indicadorSar.hasClose
-            || ((difference.sarDiff >= currentEstrategia.indicadorSar.closeLower)
-            && (difference.sarDiff <= currentEstrategia.indicadorSar.closeHigher)))
-         && (!currentEstrategia.indicadorAdx.hasClose
-            || ((difference.adxDiff >= currentEstrategia.indicadorAdx.closeLower)
-            && (difference.adxDiff <= currentEstrategia.indicadorAdx.closeHigher)))
-         && (!currentEstrategia.indicadorRsi.hasClose
-            || ((difference.rsiDiff >= currentEstrategia.indicadorRsi.closeLower)
-            && (difference.rsiDiff <= currentEstrategia.indicadorRsi.closeHigher)))
-         && (!currentEstrategia.indicadorBollinger.hasClose
-            || ((difference.bollingerDiff >= currentEstrategia.indicadorBollinger.closeLower)
-            && (difference.bollingerDiff <= currentEstrategia.indicadorBollinger.closeHigher)))
-         && (!currentEstrategia.indicadorMomentum.hasClose
-            || ((difference.momentumDiff >= currentEstrategia.indicadorMomentum.closeLower)
-            && (difference.momentumDiff <= currentEstrategia.indicadorMomentum.closeHigher)))
-         && (!currentEstrategia.indicadorIchiTrend.hasClose
-            || ((difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.closeLower)
-            && (difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.closeHigher)))
-         && (!currentEstrategia.indicadorIchiSignal.hasClose
-            || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.closeLower)
-            && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.closeHigher)))
-         )
-        {
+Difference *difference, datetime activeTime, ENUM_ORDER_TYPE tipoOperacion) {
+   if((currentEstrategia.open==true)
+      && (currentEstrategia.orderType==tipoOperacion)
+		&& (currentEstrategia.closeIndicator==true)
+		&& (currentEstrategia.openDate!=activeTime))
+   {
+      if(currentEstrategia.debeCerrarXIndicador(difference))
+      {
          if(PositionSelect(_Symbol))
            {
             string comment=PositionGetString(POSITION_COMMENT);
             if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
               {
-               trading.PositionClose(_Symbol);
-               currentEstrategia.openDate=NULL;
-		         currentEstrategia.open = false;
+               close(trading, currentEstrategia);
               }
            }
-        }
+      }                      
+   }
 }
 
+/*
 void ClosingManager::closeBuyByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, datetime activeTime) {
 
       if((currentEstrategia.open==true)
@@ -171,4 +138,6 @@ void ClosingManager::closeBuyByIndicator(CTrade *trading, Estrategy *currentEstr
               }
            }
         }
+
 }
+*/

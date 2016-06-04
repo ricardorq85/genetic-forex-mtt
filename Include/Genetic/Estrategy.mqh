@@ -8,6 +8,7 @@
 #property version   "1.00"
 
 #include <Genetic\Indicador.mqh>
+#include <Genetic\Difference.mqh>
 
 class Estrategy
   {
@@ -20,7 +21,7 @@ public:
    datetime          VigenciaHigher;
 
    double            TakeProfit;
-   double            StopLoss;
+   double            StopLoss;  
    double            Lote;
    int               cantidadVigencia;
 
@@ -56,15 +57,22 @@ public:
 
    double            currentLot;
    bool              open;
+   bool              yaActualizoStops;
    bool              active;
    bool              closeIndicator;
    datetime          openDate;
+   double            openPrice;
+   double            LastTakeProfit;
+   double            LastStopLoss;
 
                      Estrategy();
                     ~Estrategy();
    void              obtenerValorIndicador(string name, string name2, Indicador *indicador, bool isOpen, string strEstrategia);
    void              initEstrategias(string strEstrategia,int index);
    string            toString();
+   bool              debeAbrirXIndicador(Difference *difference);
+   bool              debeCerrarXIndicador(Difference *difference);
+   bool              estadoParaAbrir();
 
 private:
    string            cadenaEstrategias;
@@ -79,6 +87,8 @@ Estrategy::Estrategy()
    open=false;
    closeIndicator=false;
    openDate=NULL;
+   openPrice=0;
+   yaActualizoStops=false;
 
    indicadorMa = new Indicador();
    indicadorMacd = new Indicador();
@@ -103,10 +113,57 @@ Estrategy::Estrategy()
 
   }
 
-Estrategy::~Estrategy()
-  {
+Estrategy::~Estrategy(){  }
+  
+bool  Estrategy::estadoParaAbrir () {
+   return (!open || !yaActualizoStops);
+}
 
-  }
+bool Estrategy::debeAbrirXIndicador(Difference *difference) {
+return ((indicadorMa.open(difference.maDiff))
+      && (indicadorMacd.open(difference.macdDiff))
+      && (indicadorMaCompare.open(difference.maCompareDiff))
+      && (indicadorSar.open(difference.sarDiff))
+      && (indicadorAdx.open(difference.adxDiff))
+      && (indicadorRsi.open(difference.rsiDiff))
+      && (indicadorBollinger.open(difference.bollingerDiff))
+      && (indicadorMomentum.open(difference.momentumDiff))
+      && (indicadorIchiTrend.open(difference.ichiTrendDiff))
+      && (indicadorIchiSignal.open(difference.ichiSignalDiff))
+      && (indicadorMa1200.open(difference.ma1200Diff))
+      && (indicadorMacd20x.open(difference.macd20xDiff))
+      && (indicadorMaCompare1200.open(difference.maCompare1200Diff))
+      && (indicadorSar1200.open(difference.sar1200Diff))
+      && (indicadorAdx168.open(difference.adx168Diff))
+      && (indicadorRsi84.open(difference.rsi84Diff))
+      && (indicadorBollinger240.open(difference.bollinger240Diff))
+      && (indicadorMomentum1200.open(difference.momentum1200Diff))
+      && (indicadorIchiTrend6.open(difference.ichiTrend6Diff))
+      && (indicadorIchiSignal6.open(difference.ichiSignal6Diff)));
+}
+
+bool Estrategy::debeCerrarXIndicador(Difference *difference) {
+return ((indicadorMa.close(difference.maDiff))
+      && (indicadorMacd.close(difference.macdDiff))
+      && (indicadorMaCompare.close(difference.maCompareDiff))
+      && (indicadorSar.close(difference.sarDiff))
+      && (indicadorAdx.close(difference.adxDiff))
+      && (indicadorRsi.close(difference.rsiDiff))
+      && (indicadorBollinger.close(difference.bollingerDiff))
+      && (indicadorMomentum.close(difference.momentumDiff))
+      && (indicadorIchiTrend.close(difference.ichiTrendDiff))
+      && (indicadorIchiSignal.close(difference.ichiSignalDiff))
+      && (indicadorMa1200.close(difference.ma1200Diff))
+      && (indicadorMacd20x.close(difference.macd20xDiff))
+      && (indicadorMaCompare1200.close(difference.maCompare1200Diff))
+      && (indicadorSar1200.close(difference.sar1200Diff))
+      && (indicadorAdx168.close(difference.adx168Diff))
+      && (indicadorRsi84.close(difference.rsi84Diff))
+      && (indicadorBollinger240.close(difference.bollinger240Diff))
+      && (indicadorMomentum1200.close(difference.momentum1200Diff))
+      && (indicadorIchiTrend6.close(difference.ichiTrend6Diff))
+      && (indicadorIchiSignal6.close(difference.ichiSignal6Diff)));
+}
 
 void Estrategy::initEstrategias(string strEstrategia,int indexParam)
   {

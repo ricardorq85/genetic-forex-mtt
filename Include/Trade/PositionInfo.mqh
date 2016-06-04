@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                 PositionInfo.mqh |
-//|                   Copyright 2009-2013, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2016, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
 #include <Object.mqh>
@@ -52,6 +52,8 @@ public:
    string            FormatPosition(string &str) const;
    //--- methods for select position
    bool              Select(const string symbol);
+   bool              SelectByMagic(const string symbol,const ulong magic);
+   bool              SelectByTicket(const ulong ticket);
    bool              SelectByIndex(const int index);
    //---
    void              StoreState(void);
@@ -246,15 +248,24 @@ string CPositionInfo::FormatPosition(string &str) const
   {
    string      tmp,type;
    CSymbolInfo symbol;
+   ENUM_ACCOUNT_MARGIN_MODE margin_mode=(ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE);
 //--- set up
    symbol.Name(Symbol());
    int digits=symbol.Digits();
 //--- form the position description
-   str=StringFormat("%s %s %s %s",
-                    FormatType(type,PositionType()),
-                    DoubleToString(Volume(),2),
-                    Symbol(),
-                    DoubleToString(PriceOpen(),digits+3));
+   if(margin_mode==ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+      str=StringFormat("#%I64u %s %s %s %s",
+                       Identifier(),
+                       FormatType(type,PositionType()),
+                       DoubleToString(Volume(),2),
+                       Symbol(),
+                       DoubleToString(PriceOpen(),digits+3));
+   else
+      str=StringFormat("%s %s %s %s",
+                       FormatType(type,PositionType()),
+                       DoubleToString(Volume(),2),
+                       Symbol(),
+                       DoubleToString(PriceOpen(),digits+3));
 //--- add stops if there are any
    double sl=StopLoss();
    double tp=TakeProfit();
@@ -279,15 +290,53 @@ bool CPositionInfo::Select(const string symbol)
    return(PositionSelect(symbol));
   }
 //+------------------------------------------------------------------+
+//| Access functions PositionSelect(...)                             |
+//+------------------------------------------------------------------+
+bool CPositionInfo::SelectByMagic(const string symbol,const ulong magic)
+  {
+   bool res=false;
+   uint total=PositionsTotal();
+//---
+   for(uint i=0; i<total; i++)
+     {
+      string position_symbol=PositionGetSymbol(i);
+      if(position_symbol==symbol && magic==PositionGetInteger(POSITION_MAGIC))
+        {
+         res=true;
+         break;
+        }
+     }
+//---
+   return(res);
+  }
+//+------------------------------------------------------------------+
+//| Access functions PositionSelectByTicket(...)                     |
+//+------------------------------------------------------------------+
+bool CPositionInfo::SelectByTicket(const ulong ticket)
+  {
+   return(PositionSelectByTicket(ticket));
+  }
+//+------------------------------------------------------------------+
 //| Select a position on the index                                   |
 //+------------------------------------------------------------------+
 bool CPositionInfo::SelectByIndex(const int index)
   {
-   string name=PositionGetSymbol(index);
-   if(name=="")
-      return(false);
+   ENUM_ACCOUNT_MARGIN_MODE margin_mode=(ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE);
 //---
-   return(PositionSelect(name));
+   if(margin_mode==ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+     {
+      ulong ticket=PositionGetTicket(index);
+      if(ticket==0)
+         return(false);
+     }
+   else
+     {
+      string name=PositionGetSymbol(index);
+      if(name=="")
+         return(false);
+     }
+//---
+   return(true);
   }
 //+------------------------------------------------------------------+
 //| Stored position's current state                                  |
