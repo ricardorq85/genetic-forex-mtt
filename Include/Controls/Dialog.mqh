@@ -827,13 +827,6 @@ void CAppDialog::Minimize(void)
 //+------------------------------------------------------------------+
 void CAppDialog::Maximize(void)
   {
-//--- check bound
-   if(m_norm_rect.left+m_norm_rect.Width()>m_chart.WidthInPixels() ||
-      m_norm_rect.top+m_norm_rect.Height()>m_chart.HeightInPixels(m_subwin))
-     {
-      m_button_minmax.Pressed(true);
-      return;
-     }
 //--- reset flag
    m_minimized=false;
 //--- resize

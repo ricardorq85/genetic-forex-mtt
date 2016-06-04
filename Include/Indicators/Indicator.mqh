@@ -205,7 +205,7 @@ double CIndicator::GetData(const int buffer_num,const int index) const
 //--- check
    if(buffer==NULL)
      {
-      Print("CIndicator::GetData: invalid buffer");
+      Print(__FUNCTION__,": invalid buffer");
       return(EMPTY_VALUE);
      }
 //---

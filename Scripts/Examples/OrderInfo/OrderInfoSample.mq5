@@ -147,9 +147,12 @@ void COrderInfoSample::Processing(void)
       if(m_curr_ord<m_total_ord-1)
          m_label_info[1].Description(IntegerToString(++m_curr_ord));
      }
-   OrderSelect(ticket=OrderGetTicket(m_curr_ord));
-   m_label_info[2].Description(IntegerToString(ticket));
-   InfoToChart();
+   ticket=OrderGetTicket(m_curr_ord);
+   if(OrderSelect(ticket))
+     {
+      m_label_info[2].Description(IntegerToString(ticket));
+      InfoToChart();
+     }
 //--- redraw chart
    ChartRedraw();
    Sleep(250);

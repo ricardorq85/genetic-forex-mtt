@@ -124,7 +124,7 @@ double CPriceSeries::GetData(const int index) const
 //--- check
    if(buff==NULL)
      {
-      Print("CPriceSeries::GetData: invalid buffer");
+      Print(__FUNCTION__,": invalid buffer");
       return(EMPTY_VALUE);
      }
 //---
@@ -813,7 +813,7 @@ int CiSpread::GetData(const int index) const
 //--- check
    if(buff==NULL)
      {
-      Print("CiSpread::GetData: invalid buffer");
+      Print(__FUNCTION__,": invalid buffer");
       return(0);
      }
 //---
@@ -1035,7 +1035,7 @@ datetime CiTime::GetData(const int index) const
 //--- check
    if(buff==NULL)
      {
-      Print("CiSpread::GetData: invalid buffer");
+      Print(__FUNCTION__,": invalid buffer");
       return(0);
      }
 //---
@@ -1257,7 +1257,7 @@ long CiTickVolume::GetData(const int index) const
 //--- check
    if(buff==NULL)
      {
-      Print("CiSpread::GetData: invalid buffer");
+      Print(__FUNCTION__,": invalid buffer");
       return(0);
      }
 //---
@@ -1479,7 +1479,7 @@ long CiRealVolume::GetData(const int index) const
 //--- check
    if(buff==NULL)
      {
-      Print("CiSpread::GetData: invalid buffer");
+      Print(__FUNCTION__,": invalid buffer");
       return(0);
      }
 //---
