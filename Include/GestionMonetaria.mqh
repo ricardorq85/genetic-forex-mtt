@@ -91,6 +91,7 @@ void GestionMonetaria::toggleActiveEstrategia(Estrategy *currentEstrategia, bool
 
   }
 
+/*
 double GestionMonetaria::calculateLot(Estrategy *currentEstrategia, double maxBalance, bool doInactive)
   {
    HistorySelect(0,TimeCurrent());
@@ -106,8 +107,6 @@ double GestionMonetaria::calculateLot(Estrategy *currentEstrategia, double maxBa
    long entry;
    uint     total=HistoryDealsTotal();
    
-//   Print("Comment="+comment+" EstrategiaId="+currentEstrategia.EstrategiaId+" currentNum="+currentNum);
-//   Print(" currentProfit="+currentProfit+" MaxProfit="+maxProfit+" MaxBalance="+maxBalance+" Balance actual="+balanceActual);
    double minLot=SymbolInfoDouble(currentEstrategia.pair,SYMBOL_VOLUME_MIN);
    double maxLot=SymbolInfoDouble(currentEstrategia.pair, SYMBOL_VOLUME_MAX);
    if(balanceActual<maxBalance)
@@ -121,3 +120,98 @@ double GestionMonetaria::calculateLot(Estrategy *currentEstrategia, double maxBa
    nextLot = NormalizeDouble(nextLot, 2);
    return nextLot;
   }
+*/
+  
+double GestionMonetaria::calculateLot(Estrategy *currentEstrategia, double maxBalance, bool doInactive)
+  {
+   HistorySelect(0,TimeCurrent());
+   ulong    ticket=0;
+   double   profit;
+   string comment=NULL;
+   string symbol;
+   long inPositionId=0;
+   long outPositionId=0;
+   double nextLot=currentEstrategia.Lote;
+   double balanceActual=AccountInfoDouble(ACCOUNT_BALANCE);
+   double currentProfit=0;
+   maxBalance=MathMax(maxBalance,balanceActual);
+   double maxProfit=balanceActual-maxBalance;
+   int currentNum=0;
+   int last=0;
+   long entry;
+   uint     total=HistoryDealsTotal();
+   for(uint i=total;i>0;i--)
+     {
+      if((ticket=HistoryDealGetTicket(i-1))>0)
+        {
+         symbol=HistoryDealGetString(ticket,DEAL_SYMBOL);
+         entry =HistoryDealGetInteger(ticket,DEAL_ENTRY);
+         if(symbol!=currentEstrategia.pair){continue;}
+         if(entry==DEAL_ENTRY_IN)
+           {
+            comment=HistoryDealGetString(ticket,DEAL_COMMENT);
+            inPositionId=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
+            //if((comment!=NULL) && (comment!=(currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId))){continue;}
+           }
+         else if(entry==DEAL_ENTRY_OUT)
+           {
+            profit=HistoryDealGetDouble(ticket,DEAL_PROFIT);
+            outPositionId=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
+           }
+         if((inPositionId==0) || (outPositionId==0) || (inPositionId!=outPositionId)){continue;}
+         if(((last>0) && (profit>0)) || ((last<0) && (profit<0)))
+           {
+            currentProfit=currentProfit+profit;
+            currentNum++;
+              }else {
+            if(last==0)
+              {
+               currentProfit=profit;
+               currentNum=1;
+              }
+           }
+         if((last!=0) && (((last>0) && (profit<0)) || ((last<0) && (profit>0))))
+           {
+            break;
+              }else {
+            if(profit>0)
+              {
+               last=1;
+                 }else {
+               last=-1;
+              }
+           }
+           }else{
+         Print(IntegerToString(GetLastError())+" select "+IntegerToString(i));
+         break;
+        }
+     }
+   double minLot=SymbolInfoDouble(currentEstrategia.pair,SYMBOL_VOLUME_MIN);
+   double maxLot=SymbolInfoDouble(currentEstrategia.pair, SYMBOL_VOLUME_MAX);
+   if(currentProfit<0)
+     {
+      currentEstrategia.active=!doInactive;
+      if(currentNum>3)
+        {
+         nextLot = currentEstrategia.Lote;
+        }else if(currentNum>0) {
+         nextLot=0;
+        }
+     }
+    else if(currentProfit>0)
+     {
+     if(currentNum<2){
+         nextLot=0;
+      }else if(currentNum>=5){
+         nextLot = currentEstrategia.Lote;
+      }else if(currentNum>=2)
+        {
+         nextLot=(currentEstrategia.Lote)*currentNum;
+         }
+     }
+
+   nextLot = MathMax(minLot, nextLot);
+   nextLot = MathMin(maxLot, nextLot);
+   nextLot = NormalizeDouble(nextLot, 2);
+   return nextLot;
+  }  
