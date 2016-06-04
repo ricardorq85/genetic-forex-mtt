@@ -261,7 +261,7 @@ void outHistory()
             fileHandle=FileOpen(fname,FILE_WRITE|FILE_ANSI,",");
             if(fileHandle!=INVALID_HANDLE)
               {
-               FileWrite(fileHandle,"iCounter,Date,Time,Open,Low,High,Close,Volume,Spread,Average(60),MACD Value, MACD Signal, close "+compare+
+               FileWrite(fileHandle,"iCounter,Moneda,Periodo,MonedaComparacion,Date,Time,Open,Low,High,Close,Volume,Spread,Average(60),MACD Value, MACD Signal, close "+compare+
                          ", Average(60) "+compare+
                          ", SAR(0.02;0.2), ADX Value, ADX Plus, ADX Minus, RSI(28)"+
                          ", Bollinger Upper(20;2), Bollinger Lower(20;2)"+
@@ -304,7 +304,7 @@ void outHistory()
                  }
               }
 
-            FileWrite(fileHandle,iCurrent-iCounter,strDate1,strTime1,rates_array[i].open,rates_array[i].low,rates_array[i].high,rates_array[i].close,rates_array[i].tick_volume,
+            FileWrite(fileHandle,iCurrent-iCounter,_Symbol,_Period,compare,strDate1,strTime1,rates_array[i].open,rates_array[i].low,rates_array[i].high,rates_array[i].close,rates_array[i].tick_volume,
                       spread,
                       (i<ArraySize(maBuffer))?(NormalizeDouble(maBuffer[i],_Digits)) : 0,
                       (i<ArraySize(macdMainBuffer))?(NormalizeDouble(macdMainBuffer[i],_Digits)) : 0,

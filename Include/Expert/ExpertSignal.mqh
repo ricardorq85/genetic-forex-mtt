@@ -277,9 +277,8 @@ bool CExpertSignal::OpenLongParams(double &price,double &sl,double &tp,datetime 
    if(general==NULL)
      {
       //--- if a base price is not specified explicitly, take the current market price
-      if(m_base_price==0.0)
-         m_base_price=m_symbol.Ask();
-      price      =m_symbol.NormalizePrice(m_base_price-m_price_level*PriceLevelUnit());
+      double base_price=(m_base_price==0.0) ? m_symbol.Ask() : m_base_price;
+      price      =m_symbol.NormalizePrice(base_price-m_price_level*PriceLevelUnit());
       sl         =(m_stop_level==0.0) ? 0.0 : m_symbol.NormalizePrice(price-m_stop_level*PriceLevelUnit());
       tp         =(m_take_level==0.0) ? 0.0 : m_symbol.NormalizePrice(price+m_take_level*PriceLevelUnit());
       expiration+=m_expiration*PeriodSeconds(m_period);
@@ -298,9 +297,8 @@ bool CExpertSignal::OpenShortParams(double &price,double &sl,double &tp,datetime
    if(general==NULL)
      {
       //--- if a base price is not specified explicitly, take the current market price
-      if(m_base_price==0.0)
-         m_base_price=m_symbol.Bid();
-      price      =m_symbol.NormalizePrice(m_base_price+m_price_level*PriceLevelUnit());
+      double base_price=(m_base_price==0.0) ? m_symbol.Bid() : m_base_price;
+      price      =m_symbol.NormalizePrice(base_price+m_price_level*PriceLevelUnit());
       sl         =(m_stop_level==0.0) ? 0.0 : m_symbol.NormalizePrice(price+m_stop_level*PriceLevelUnit());
       tp         =(m_take_level==0.0) ? 0.0 : m_symbol.NormalizePrice(price-m_take_level*PriceLevelUnit());
       expiration+=m_expiration*PeriodSeconds(m_period);

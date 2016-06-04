@@ -14,6 +14,7 @@ class Indicador
 private:
 
 public:
+   string            name;
    double            openLower;
    double            openHigher;
    bool              hasOpen;
@@ -22,7 +23,7 @@ public:
    double            closeHigher;
    bool              hasClose;
 
-                     Indicador();
+                     Indicador(string n);
                     ~Indicador();
    bool              open(double value);
    bool              close(double value);
@@ -30,8 +31,9 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Indicador::Indicador()
+Indicador::Indicador(string n)
   {
+   name=n;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
