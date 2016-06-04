@@ -54,7 +54,7 @@ bool Indicador::close(double value) {
    bool val = false;
 
    val = ((!hasClose)
-                  || ((value>=openLower)
-                  && (value<=openHigher)));
+                  || ((value>=closeLower)
+                  && (value<=closeHigher)));
    return val;
 }

@@ -76,6 +76,7 @@ Difference *difference, datetime activeTime, ENUM_ORDER_TYPE tipoOperacion) {
    {
       if(currentEstrategia.debeCerrarXIndicador(difference))
       {
+      bool abcBol = (currentEstrategia.indicadorBollinger.close(difference.bollingerDiff));
          if(PositionSelect(_Symbol))
            {
             string comment=PositionGetString(POSITION_COMMENT);

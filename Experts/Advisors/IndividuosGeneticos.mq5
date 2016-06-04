@@ -142,6 +142,18 @@ int OnInit()
    stopsEsperados = new StopsEsperados();   
    printManager = new PrintManager(print);
    
+   /*
+   int dig = SymbolInfoInteger(compare,SYMBOL_DIGITS);
+   double poi = SymbolInfoDouble(compare,SYMBOL_POINT);
+   double minVol = SymbolInfoDouble(compare,SYMBOL_VOLUME_MIN);
+   double maxVol = SymbolInfoDouble(compare,SYMBOL_VOLUME_MAX);
+   
+   Print("dig=" + dig);
+   Print("poi=" + poi);
+   Print("minVol=" + minVol);
+   Print("maxVol=" + maxVol);
+   */
+   
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
