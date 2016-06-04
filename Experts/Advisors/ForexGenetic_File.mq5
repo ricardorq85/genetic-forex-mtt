@@ -10,6 +10,7 @@
 #include <Trade\Trade.mqh>
 #include <Estrategy.mqh>
 #include <Difference.mqh>
+#include <GestionMonetaria.mqh>
 
 //--- input parameters
 input string   fileName="estrategias.csv";
@@ -51,11 +52,11 @@ double ichiSenkouSpanABuffer[];
 double ichiSenkouSpanBBuffer[];
 double ichiChinkouSpanBuffer[];
 
-   double ichiTenkanSen;
-   double ichiKijunSen;
-   double ichiSpanA;
-   double ichiSpanB;
-   double ichiChinkouSpan;
+double ichiTenkanSen;
+double ichiKijunSen;
+double ichiSpanA;
+double ichiSpanB;
+double ichiChinkouSpan;
 
 double initialBalance=0.0;
 double maxBalance=0.0;
@@ -67,9 +68,13 @@ bool endEstrategias=false;
 datetime fileLastReadTime=NULL;
 int lastTotalPositions=0;
 datetime activeTime=NULL;
+datetime printBalance=NULL;
 int counter=1;
 Estrategy   *estrategias[];
+GestionMonetaria   *gestionMonetaria;
+Estrategy *estrategiaOpenPosition;
 CTrade     *trading;
+int nextInitialIndex=0;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -85,7 +90,10 @@ int OnInit()
    trading.SetExpertMagicNumber(1);     // magic
    initialBalance=AccountInfoDouble(ACCOUNT_BALANCE);
    maxBalance=initialBalance;
-//---
+   
+   gestionMonetaria = new GestionMonetaria();
+   estrategiaOpenPosition = new Estrategy();
+   
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
@@ -126,7 +134,25 @@ void OnTimer()
 //+------------------------------------------------------------------+
 void OnTrade()
   {
-  }
+   updateClosedPosition();
+   
+   /*HistorySelect(0,TimeCurrent());
+   uint     total=HistoryDealsTotal();
+   ulong    ticket=0;
+   long     entry;
+   double   profit;
+   if((ticket=HistoryDealGetTicket(total-1))>0) {   
+      entry =HistoryDealGetInteger(ticket,DEAL_ENTRY);
+      if(entry==DEAL_ENTRY_OUT) {
+         profit=HistoryDealGetDouble(ticket,DEAL_PROFIT);
+         if (profit<0){
+            MqlDateTime mqldt;
+            TimeToStruct(activeTime + 1*24*60*60, mqldt);             
+            nextVigencia = StringToTime(mqldt.year+"."+mqldt.mon+"."+mqldt.day+" 00:00");
+         }
+      }
+  }*/
+}
 //+------------------------------------------------------------------+
 //| Tester function                                                  |
 //+------------------------------------------------------------------+
@@ -149,7 +175,7 @@ void OnChartEvent(const int id,
 void OnBookEvent(const string &symbol)
   {
   }
-//+------------------------------------------------------------------+
+
 void loadHandles()
   {
    ArraySetAsSeries(rates_array,true);
@@ -196,11 +222,11 @@ void loadHandles()
    ArraySetAsSeries(momentumBuffer,true);
 
    ichiHandle=iIchimoku(_Symbol,_Period,9,26,52);
-   SetIndexBuffer(0,ichiTenkanSenBuffer,INDICATOR_DATA);
-   SetIndexBuffer(1,ichiKijunSenBuffer,INDICATOR_DATA);
-   SetIndexBuffer(2,ichiSenkouSpanABuffer,INDICATOR_DATA);
-   SetIndexBuffer(3,ichiSenkouSpanBBuffer,INDICATOR_DATA);
-   SetIndexBuffer(4,ichiChinkouSpanBuffer,INDICATOR_DATA);
+   SetIndexBuffer(0,ichiTenkanSenBuffer,INDICATOR_CALCULATIONS);
+   SetIndexBuffer(1,ichiKijunSenBuffer,INDICATOR_CALCULATIONS);
+   SetIndexBuffer(2,ichiSenkouSpanABuffer,INDICATOR_CALCULATIONS);
+   SetIndexBuffer(3,ichiSenkouSpanBBuffer,INDICATOR_CALCULATIONS);
+   SetIndexBuffer(4,ichiChinkouSpanBuffer,INDICATOR_CALCULATIONS);
    ArraySetAsSeries(ichiTenkanSenBuffer,true);
    ArraySetAsSeries(ichiKijunSenBuffer,true);
    ArraySetAsSeries(ichiSenkouSpanABuffer,true);
@@ -219,14 +245,20 @@ void process()
       return;
      }
    customPrint("last_tick.time = "+IntegerToString((long)last_tick.time));
-
-   processClose();
+   
+   //Print("activeTime-printBalance="+obtenerDiferenciaEnHoras(printBalance, last_tick.time));
+   if ((obtenerDiferenciaEnHoras(printBalance, last_tick.time)>=10)) {
+     Print("Balance entre días="+AccountInfoDouble(ACCOUNT_BALANCE));
+     printBalance = last_tick.time;
+   }
+  
+   //processClose();
 
    int to_copy=shift+1;
 
    int iCurrent=CopyRates(_Symbol,_Period,0,to_copy,rates_array);
    int iCurrentCompare=CopyRates(compare,_Period,0,to_copy,rates_array_compare);
-   activeTime=rates_array[shift].time;
+   activeTime=rates_array[shift].time;   
 
    customPrint("nextVigencia innn="+nextVigencia);
    if((nextVigencia!=NULL) && (activeTime<nextVigencia) && (lastTotalPositions==0))
@@ -247,11 +279,11 @@ void process()
    CopyBuffer(bandsHandle,1,0,to_copy,bandsUpperBuffer);
    CopyBuffer(bandsHandle,2,0,to_copy,bandsLowerBuffer);
    CopyBuffer(momentumHandle,0,0,to_copy,momentumBuffer);
-   CopyBuffer(ichiHandle,0,0,to_copy,ichiTenkanSenBuffer);
-   CopyBuffer(ichiHandle,1,0,to_copy,ichiKijunSenBuffer);
-   CopyBuffer(ichiHandle,2,0,to_copy,ichiSenkouSpanABuffer);
-   CopyBuffer(ichiHandle,3,0,to_copy,ichiSenkouSpanBBuffer);
-   CopyBuffer(ichiHandle,4,0,to_copy,ichiChinkouSpanBuffer);
+   CopyBuffer(ichiHandle,0,0,27,ichiTenkanSenBuffer);
+   CopyBuffer(ichiHandle,1,0,27,ichiKijunSenBuffer);
+   CopyBuffer(ichiHandle,2,0,27,ichiSenkouSpanABuffer);
+   CopyBuffer(ichiHandle,3,0,27,ichiSenkouSpanBBuffer);
+   CopyBuffer(ichiHandle,4,0,27,ichiChinkouSpanBuffer);
 
    double ma=NormalizeDouble(maBuffer[shift],_Digits);
    double macdV = NormalizeDouble(macdMainBuffer[shift], _Digits);
@@ -273,7 +305,7 @@ void process()
    ichiKijunSen = NormalizeDouble(ichiKijunSenBuffer[shift],_Digits);
    ichiSpanA = NormalizeDouble(ichiSenkouSpanABuffer[shift],_Digits);
    ichiSpanB = NormalizeDouble(ichiSenkouSpanBBuffer[shift],_Digits);
-   ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[shift],_Digits);   
+   ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[26],_Digits);
 
    double low=NormalizeDouble(rates_array[shift].low,_Digits);
    double high=NormalizeDouble(rates_array[shift].high,_Digits);
@@ -295,8 +327,7 @@ void process()
    double minLot=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
    double maxLot=SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
    customPrint("BEGINNNNN    XXXXX");
-   for(int i=0; i<ArraySize(estrategias); i++)
-     {
+   for(int i=nextInitialIndex; i<ArraySize(estrategias); i++) {
       if(PositionSelect(_Symbol))
         {
          double open=PositionGetDouble(POSITION_PRICE_OPEN);
@@ -311,7 +342,11 @@ void process()
       if(((!currentEstrategia.active) || (currentEstrategia.VigenciaLower>activeTime)) && (!currentEstrategia.open))
         {
          customPrint("currentEstrategia.VigenciaLower="+currentEstrategia.VigenciaLower+" activeTime="+activeTime);
-         continue;
+         if (currentEstrategia.VigenciaLower>activeTime) {
+            break;
+            //if ((estrategiaOpenPosition == NULL) || (!estrategiaOpenPosition.open)){break;}
+            //else { continue;}
+         } else {continue;}
         }
       customPrint("END    XXXXX");
       if(print)
@@ -323,25 +358,34 @@ void process()
          && (currentEstrategia.closeIndicator==true)
          && (currentEstrategia.openDate!=activeTime)
          //&&((low-last_tick.bid)<=pipsFixer)
-         && (difference.maDiff >=currentEstrategia.closeMaLower)
-         && (difference.maDiff <= currentEstrategia.closeMaHigher)
-         && (difference.macdDiff >= currentEstrategia.closeMacdLower)
-         && (difference.macdDiff <= currentEstrategia.closeMacdHigher)
-         && (difference.maCompareDiff >= currentEstrategia.closeMaCompareLower)
-         && (difference.maCompareDiff <= currentEstrategia.closeMaCompareHigher)
-         && (difference.sarDiff >= currentEstrategia.closeSarLower)
-         && (difference.sarDiff <= currentEstrategia.closeSarHigher)
-         && (difference.adxDiff >= currentEstrategia.closeAdxLower)
-         && (difference.adxDiff <= currentEstrategia.closeAdxHigher)
-         && (difference.rsiDiff >= currentEstrategia.closeRsiLower)
-         && (difference.rsiDiff <= currentEstrategia.closeRsiHigher)
-         && (difference.bollingerDiff >= currentEstrategia.closeBollingerLower)
-         && (difference.bollingerDiff <= currentEstrategia.closeBollingerHigher)
-         && (difference.momentumDiff >= currentEstrategia.closeMomentumLower)
-         && (difference.momentumDiff <= currentEstrategia.closeMomentumHigher)
-         && (difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower)
-         && (difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher)
-         && (!currentEstrategia.indicadorIchiSignal.hasOpen
+         && (!currentEstrategia.indicadorMa.hasClose
+            || ((difference.maDiff >= currentEstrategia.indicadorMa.closeLower)
+            && (difference.maDiff <= currentEstrategia.indicadorMa.closeHigher)))
+         && (!currentEstrategia.indicadorMacd.hasClose
+            || ((difference.macdDiff >= currentEstrategia.indicadorMacd.closeLower)
+            && (difference.macdDiff <= currentEstrategia.indicadorMacd.closeHigher)))
+         && (!currentEstrategia.indicadorMaCompare.hasClose
+            || ((difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.closeLower)
+            && (difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.closeHigher)))
+         && (!currentEstrategia.indicadorSar.hasClose
+            || ((difference.sarDiff >= currentEstrategia.indicadorSar.closeLower)
+            && (difference.sarDiff <= currentEstrategia.indicadorSar.closeHigher)))
+         && (!currentEstrategia.indicadorAdx.hasClose
+            || ((difference.adxDiff >= currentEstrategia.indicadorAdx.closeLower)
+            && (difference.adxDiff <= currentEstrategia.indicadorAdx.closeHigher)))
+         && (!currentEstrategia.indicadorRsi.hasClose
+            || ((difference.rsiDiff >= currentEstrategia.indicadorRsi.closeLower)
+            && (difference.rsiDiff <= currentEstrategia.indicadorRsi.closeHigher)))
+         && (!currentEstrategia.indicadorBollinger.hasClose
+            || ((difference.bollingerDiff >= currentEstrategia.indicadorBollinger.closeLower)
+            && (difference.bollingerDiff <= currentEstrategia.indicadorBollinger.closeHigher)))
+         && (!currentEstrategia.indicadorMomentum.hasClose
+            || ((difference.momentumDiff >= currentEstrategia.indicadorMomentum.closeLower)
+            && (difference.momentumDiff <= currentEstrategia.indicadorMomentum.closeHigher)))
+         && (!currentEstrategia.indicadorIchiTrend.hasClose
+            || ((difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.closeLower)
+            && (difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.closeHigher)))
+         && (!currentEstrategia.indicadorIchiSignal.hasClose
             || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.closeLower)
             && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.closeHigher)))
          )
@@ -370,27 +414,36 @@ void process()
          && (currentEstrategia.closeIndicator==true)
          && (currentEstrategia.openDate!=activeTime)
          //&& ((last_tick.ask-high)<=pipsFixer)
-         && (difference.maDiff >= currentEstrategia.closeMaLower)
-         && (difference.maDiff <= currentEstrategia.closeMaHigher)
-         && (difference.macdDiff >= currentEstrategia.closeMacdLower)
-         && (difference.macdDiff <= currentEstrategia.closeMacdHigher)
-         && (difference.maCompareDiff >= currentEstrategia.closeMaCompareLower)
-         && (difference.maCompareDiff <= currentEstrategia.closeMaCompareHigher)
-         && (difference.sarDiff >= currentEstrategia.closeSarLower)
-         && (difference.sarDiff <= currentEstrategia.closeSarHigher)
-         && (difference.adxDiff >= currentEstrategia.closeAdxLower)
-         && (difference.adxDiff <= currentEstrategia.closeAdxHigher)
-         && (difference.rsiDiff >= currentEstrategia.closeRsiLower)
-         && (difference.rsiDiff <= currentEstrategia.closeRsiHigher)
-         && (difference.bollingerDiff >= currentEstrategia.closeBollingerLower)
-         && (difference.bollingerDiff <= currentEstrategia.closeBollingerHigher)
-         && (difference.momentumDiff >= currentEstrategia.closeMomentumLower)
-         && (difference.momentumDiff <= currentEstrategia.closeMomentumHigher)
-         && (difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower)
-         && (difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher)
+         && (!currentEstrategia.indicadorMa.hasClose
+            || ((difference.maDiff >= currentEstrategia.indicadorMa.closeLower)
+            && (difference.maDiff <= currentEstrategia.indicadorMa.closeHigher)))
+         && (!currentEstrategia.indicadorMacd.hasClose
+            || ((difference.macdDiff >= currentEstrategia.indicadorMacd.closeLower)
+            && (difference.macdDiff <= currentEstrategia.indicadorMacd.closeHigher)))
+         && (!currentEstrategia.indicadorMaCompare.hasClose
+            || ((difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.closeLower)
+            && (difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.closeHigher)))
+         && (!currentEstrategia.indicadorSar.hasClose
+            || ((difference.sarDiff >= currentEstrategia.indicadorSar.closeLower)
+            && (difference.sarDiff <= currentEstrategia.indicadorSar.closeHigher)))
+         && (!currentEstrategia.indicadorAdx.hasClose
+            || ((difference.adxDiff >= currentEstrategia.indicadorAdx.closeLower)
+            && (difference.adxDiff <= currentEstrategia.indicadorAdx.closeHigher)))
+         && (!currentEstrategia.indicadorRsi.hasClose
+            || ((difference.rsiDiff >= currentEstrategia.indicadorRsi.closeLower)
+            && (difference.rsiDiff <= currentEstrategia.indicadorRsi.closeHigher)))
+         && (!currentEstrategia.indicadorBollinger.hasClose
+            || ((difference.bollingerDiff >= currentEstrategia.indicadorBollinger.closeLower)
+            && (difference.bollingerDiff <= currentEstrategia.indicadorBollinger.closeHigher)))
+         && (!currentEstrategia.indicadorMomentum.hasClose
+            || ((difference.momentumDiff >= currentEstrategia.indicadorMomentum.closeLower)
+            && (difference.momentumDiff <= currentEstrategia.indicadorMomentum.closeHigher)))
+         && (!currentEstrategia.indicadorIchiTrend.hasClose
+            || ((difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.closeLower)
+            && (difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.closeHigher)))
          && (!currentEstrategia.indicadorIchiSignal.hasClose
             || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.closeLower)
-         && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.closeHigher)))
+            && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.closeHigher)))
          )
         {
          if(PositionSelect(_Symbol))
@@ -413,6 +466,9 @@ void process()
       if((currentEstrategia.active) && (currentEstrategia.VigenciaHigher<activeTime) && (!currentEstrategia.open))
         {
          customPrint("currentEstrategia.VigenciaHigher="+currentEstrategia.VigenciaHigher+" activeTime="+activeTime);
+         if (currentEstrategia.VigenciaHigher<activeTime) {
+            nextInitialIndex = i+1;
+         }
          currentEstrategia.active=false;
          nextVigencia=NULL;
         }
@@ -463,24 +519,33 @@ void process()
             && (currentEstrategia.orderType==ORDER_TYPE_BUY))
            {
             if(//((last_tick.ask-high)<=pipsFixer) && 
-               (difference.maDiff>=currentEstrategia.openMaLower)
-               && (difference.maDiff<=currentEstrategia.openMaHigher)
-               && (difference.macdDiff >= currentEstrategia.openMacdLower)
-               && (difference.macdDiff <= currentEstrategia.openMacdHigher)
-               && (difference.maCompareDiff >= currentEstrategia.openMaCompareLower)
-               && (difference.maCompareDiff <= currentEstrategia.openMaCompareHigher)
-               && (difference.sarDiff >= currentEstrategia.openSarLower)
-               && (difference.sarDiff <= currentEstrategia.openSarHigher)
-               && (difference.adxDiff >= currentEstrategia.openAdxLower)
-               && (difference.adxDiff <= currentEstrategia.openAdxHigher)
-               && (difference.rsiDiff >= currentEstrategia.openRsiLower)
-               && (difference.rsiDiff <= currentEstrategia.openRsiHigher)
-               && (difference.bollingerDiff >= currentEstrategia.openBollingerLower)
-               && (difference.bollingerDiff <= currentEstrategia.openBollingerHigher)
-               && (difference.momentumDiff >= currentEstrategia.openMomentumLower)
-               && (difference.momentumDiff <= currentEstrategia.openMomentumHigher)
-               && (difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower)
-               && (difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher)
+                ((!currentEstrategia.indicadorMa.hasOpen) 
+                  || ((difference.maDiff>=currentEstrategia.indicadorMa.openLower)
+                  && (difference.maDiff<=currentEstrategia.indicadorMa.openHigher)))
+               && ((!currentEstrategia.indicadorMacd.hasOpen) 
+                  || ((difference.macdDiff >= currentEstrategia.indicadorMacd.openLower)
+                  && (difference.macdDiff <= currentEstrategia.indicadorMacd.openHigher)))
+               && ((!currentEstrategia.indicadorMaCompare.hasOpen) 
+                  || ((difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.openLower)
+                  && (difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.openHigher)))
+               && ((!currentEstrategia.indicadorSar.hasOpen) 
+                  || ((difference.sarDiff >= currentEstrategia.indicadorSar.openLower)
+                  && (difference.sarDiff <= currentEstrategia.indicadorSar.openHigher)))
+               && ((!currentEstrategia.indicadorAdx.hasOpen) 
+                  || ((difference.adxDiff >= currentEstrategia.indicadorAdx.openLower)
+                  && (difference.adxDiff <= currentEstrategia.indicadorAdx.openHigher)))
+               && ((!currentEstrategia.indicadorRsi.hasOpen) 
+                  || ((difference.rsiDiff >= currentEstrategia.indicadorRsi.openLower)
+                  && (difference.rsiDiff <= currentEstrategia.indicadorRsi.openHigher)))
+               && ((!currentEstrategia.indicadorBollinger.hasOpen) 
+                  || ((difference.bollingerDiff >= currentEstrategia.indicadorBollinger.openLower)
+                  && (difference.bollingerDiff <= currentEstrategia.indicadorBollinger.openHigher)))
+               && ((!currentEstrategia.indicadorMomentum.hasOpen) 
+                  || ((difference.momentumDiff >= currentEstrategia.indicadorMomentum.openLower)
+                  && (difference.momentumDiff <= currentEstrategia.indicadorMomentum.openHigher)))
+               && ((!currentEstrategia.indicadorIchiTrend.hasOpen) 
+                  || ((difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.openLower)
+                  && (difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.openHigher)))
                && ((!currentEstrategia.indicadorIchiSignal.hasOpen) 
                   || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.openLower)
                   && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.openHigher)))
@@ -496,9 +561,13 @@ void process()
                double lot=currentEstrategia.Lote;
                if(calculateLot)
                  {
-                  double lotCalc=nextLot(currentEstrategia);
+                  //double lotCalc=nextLot(currentEstrategia);
+                  maxBalance = MathMax(maxBalance,AccountInfoDouble(ACCOUNT_BALANCE));
+                  double lotCalc = gestionMonetaria.calculateLot(currentEstrategia, maxBalance, doInactive);
+                  customPrint("Lote calculado="+DoubleToString(lotCalc));
                   lot=lotCalc;
                  }
+               gestionMonetaria.toggleActiveEstrategia(currentEstrategia, doInactive);
                if(currentEstrategia.active)
                  {
                   bool executed=false;
@@ -511,7 +580,9 @@ void process()
                      executed=trading.PositionOpen(_Symbol,ORDER_TYPE_BUY,lot,last_tick.ask,last_tick.ask-currentEstrategia.StopLoss*_Point,last_tick.ask+currentEstrategia.TakeProfit*_Point,currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId);
                      if(executed)
                        {
+                        estrategiaOpenPosition = currentEstrategia;
                         currentEstrategia.openDate=activeTime;
+                        currentEstrategia.open = true;
                         if(oneByPeriod)
                           {
                            currentEstrategia.active=false;
@@ -539,8 +610,6 @@ void process()
          difference.maDiff=NormalizeDouble(ma-last_tick.bid,_Digits);
          difference.sarDiff=NormalizeDouble(sar-last_tick.bid,_Digits);
          difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid,_Digits);
-         //Print("4.0 ichiSpanA="+ichiSpanA+";ichiSpanB="+ichiSpanB+";last_tick.bid="+last_tick.bid+";difference.ichiTrendDiff="+difference.ichiTrendDiff);
-         //Print("4.0.1 currentEstrategia.openIchiTrendLower="+currentEstrategia.openIchiTrendLower);
          if(print)
            {           
                printSellEvaluation(difference,currentEstrategia,low-last_tick.bid);
@@ -549,27 +618,36 @@ void process()
             && (currentEstrategia.orderType==ORDER_TYPE_SELL))
            {
             if(//((low-last_tick.bid)<=pipsFixer)&& 
-               (difference.maDiff>=currentEstrategia.openMaLower)
-               && (difference.maDiff<=currentEstrategia.openMaHigher)
-               && (difference.macdDiff >= currentEstrategia.openMacdLower)
-               && (difference.macdDiff <= currentEstrategia.openMacdHigher)
-               && (difference.maCompareDiff >= currentEstrategia.openMaCompareLower)
-               && (difference.maCompareDiff <= currentEstrategia.openMaCompareHigher)
-               && (difference.sarDiff >= currentEstrategia.openSarLower)
-               && (difference.sarDiff <= currentEstrategia.openSarHigher)
-               && (difference.adxDiff >= currentEstrategia.openAdxLower)
-               && (difference.adxDiff <= currentEstrategia.openAdxHigher)
-               && (difference.rsiDiff >= currentEstrategia.openRsiLower)
-               && (difference.rsiDiff <= currentEstrategia.openRsiHigher)
-               && (difference.bollingerDiff >= currentEstrategia.openBollingerLower)
-               && (difference.bollingerDiff <= currentEstrategia.openBollingerHigher)
-               && (difference.momentumDiff >= currentEstrategia.openMomentumLower)
-               && (difference.momentumDiff <= currentEstrategia.openMomentumHigher)
-               && (difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower)
-               && (difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher)
+                ((!currentEstrategia.indicadorMa.hasOpen)
+                  || ((difference.maDiff>=currentEstrategia.indicadorMa.openLower)
+                  && (difference.maDiff<=currentEstrategia.indicadorMa.openHigher)))
+               && ((!currentEstrategia.indicadorMacd.hasOpen)
+                  || ((difference.macdDiff >= currentEstrategia.indicadorMacd.openLower)
+                  && (difference.macdDiff <= currentEstrategia.indicadorMacd.openHigher)))
+               && ((!currentEstrategia.indicadorMaCompare.hasOpen)
+                  || ((difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.openLower)
+                  && (difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.openHigher)))
+               && ((!currentEstrategia.indicadorSar.hasOpen)
+                  || ((difference.sarDiff >= currentEstrategia.indicadorSar.openLower)
+                  && (difference.sarDiff <= currentEstrategia.indicadorSar.openHigher)))
+               && ((!currentEstrategia.indicadorAdx.hasOpen)
+                  || ((difference.adxDiff >= currentEstrategia.indicadorAdx.openLower)
+                  && (difference.adxDiff <= currentEstrategia.indicadorAdx.openHigher)))
+               && ((!currentEstrategia.indicadorRsi.hasOpen)
+                  || ((difference.rsiDiff >= currentEstrategia.indicadorRsi.openLower)
+                  && (difference.rsiDiff <= currentEstrategia.indicadorRsi.openHigher)))
+               && ((!currentEstrategia.indicadorBollinger.hasOpen)
+                  || ((difference.bollingerDiff >= currentEstrategia.indicadorBollinger.openLower)
+                  && (difference.bollingerDiff <= currentEstrategia.indicadorBollinger.openHigher)))
+               && ((!currentEstrategia.indicadorMomentum.hasOpen)
+                  || ((difference.momentumDiff >= currentEstrategia.indicadorMomentum.openLower)
+                  && (difference.momentumDiff <= currentEstrategia.indicadorMomentum.openHigher)))
+               && ((!currentEstrategia.indicadorIchiTrend.hasOpen)
+                  || ((difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.openLower)
+                  && (difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.openHigher)))
                && ((!currentEstrategia.indicadorIchiSignal.hasOpen)
                   || ((difference.ichiSignalDiff >= currentEstrategia.indicadorIchiSignal.openLower)
-               && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.openHigher)))
+                  && (difference.ichiSignalDiff <= currentEstrategia.indicadorIchiSignal.openHigher)))
                )
               {
                if(endEstrategias && (oneByPeriod || onceAtTime))
@@ -582,27 +660,25 @@ void process()
                double lot=currentEstrategia.Lote;
                if(calculateLot)
                  {
-                  double lotCalc=nextLot(currentEstrategia);
+                  maxBalance = MathMax(maxBalance,AccountInfoDouble(ACCOUNT_BALANCE));
+                  double lotCalc = gestionMonetaria.calculateLot(currentEstrategia, maxBalance, doInactive);
+                  //double lotCalc=nextLot(currentEstrategia);
+                  customPrint("Lote calculado="+DoubleToString(lotCalc));
                   lot=lotCalc;
                  }
+               gestionMonetaria.toggleActiveEstrategia(currentEstrategia, doInactive);
                if(currentEstrategia.active)
                  {
                   bool executed=false;
                   while(!executed)
                     {
-                     //Print("TEST ma="+ma+" maCompare="+maCompare+" difference.maCompareDiff="+difference.maCompareDiff+" closeCompare="+closeCompare+" macdV="+macdV+" macdS="+macdS+" sar="+sar+" adxValue="+adxValue+" adxPlus="+adxPlus+" adxMinus="+adxMinus+" rsi="+rsi+" bollingerUpper="+bollingerUpper+" bollingerLower="+bollingerLower+" momentum="+momentum);
-                     //Print("TEST 2 currentEstrategia.openMaCompareLower="+currentEstrategia.openMaCompareLower+" currentEstrategia.openMaCompareHigher="+currentEstrategia.openMaCompareLower);
-                     Print("difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff));
-                        Print("ichiTenkanSen="+DoubleToString(ichiTenkanSen));
-   Print("ichiKijunSen="+DoubleToString(ichiKijunSen));
-   Print("ichiSpanA="+DoubleToString(ichiSpanA));
-   Print("ichiSpanB="+DoubleToString(ichiSpanB));
-   Print("ichiChinkouSpan="+DoubleToString(ichiChinkouSpan));
-
+                    
                      executed=trading.PositionOpen(_Symbol,ORDER_TYPE_SELL,lot,last_tick.bid,last_tick.bid+currentEstrategia.StopLoss*_Point,last_tick.bid-currentEstrategia.TakeProfit*_Point,currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId);
                      if(executed)
                        {
-                        currentEstrategia.openDate=activeTime;
+                       estrategiaOpenPosition = currentEstrategia;
+                       currentEstrategia.openDate=activeTime;
+                       currentEstrategia.open = true;
                         if(oneByPeriod)
                           {
                            currentEstrategia.active=false;
@@ -629,6 +705,17 @@ void process()
         }
      }
   }
+  
+long obtenerDiferenciaEnHoras(datetime d1, datetime d2) {
+   MqlDateTime str1,str2; 
+   TimeToStruct(d1,str1);
+   TimeToStruct(d2,str2);
+      
+   // Se debe arreglar para fechas de diferentes años
+   long dif = (str2.hour-str1.hour) + (str2.day-str1.day)*24 + (str2.mon-str1.mon)*30*24 + (str2.year-str1.year)*360*24;
+   
+   return (dif);
+}
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -682,15 +769,10 @@ void loadEstrategias()
       Print("Error code "+IntegerToString(GetLastError()));
      }
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void processClose()
+  
+void updateClosedPosition()
   {
    int positionsTotal=PositionsTotal();
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    if(positionsTotal==0)
      {
       endEstrategias=false;
@@ -698,31 +780,73 @@ void processClose()
       endEstrategias=onceAtTime;
      }
    customPrint("5: PositionsTotal="+IntegerToString(positionsTotal)+" LastPositionsTotal="+IntegerToString(lastTotalPositions));
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
+   if(lastTotalPositions != positionsTotal) {
+      Print("Balance="+AccountInfoDouble(ACCOUNT_BALANCE));
+      customPrint("close 5.0");
+      if(positionsTotal==0) {
+         for(int i=0; i<ArraySize(estrategias); i++) {
+            Estrategy *currentEstrategia=estrategias[i];
+            customPrint("close 5.1");
+            currentEstrategia.open = false;
+          }
+        }
+     }
+   lastTotalPositions=positionsTotal;
+}    
+
+
+bool processCloseForEstrategia(Estrategy *estrategia) {
+   estrategia.open = false;
+   if(PositionSelect(estrategia.pair))
+     {
+      string comment=PositionGetString(POSITION_COMMENT);
+      ENUM_ORDER_TYPE orderType=((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE));
+      if(estrategia.orderType!=orderType) {
+        if(comment==estrategia.Index+"-"+estrategia.EstrategiaId) {
+         customPrint("close 5.2.1 "+comment);
+         customPrint("close 5.2 "+estrategia.EstrategiaId);
+         estrategia.open=true;
+         return true;
+        }
+      }
+     }
+     return false;
+}
+
+/*void processCloseOld()
+  {
+   int positionsTotal=PositionsTotal();
+   if(positionsTotal==0)
+     {
+      endEstrategias=false;
+        }else {
+      endEstrategias=onceAtTime;
+     }
+   customPrint("5: PositionsTotal="+IntegerToString(positionsTotal)+" LastPositionsTotal="+IntegerToString(lastTotalPositions));
+
    if(lastTotalPositions!=positionsTotal)
      {
       Print("Balance="+AccountInfoDouble(ACCOUNT_BALANCE));
       customPrint("close 5.0");
-      Estrategy *currentEstrategia=NULL;
-      for(int i=0; i<ArraySize(estrategias); i++)
-        {
-         currentEstrategia=estrategias[i];
-         currentEstrategia.open=false;
-         customPrint("close 5.1");
-         if(positionsTotal!=0)
-           {
-            if(PositionSelect(currentEstrategia.pair))
+      if(positionsTotal!=0) {
+         if (!processCloseForEstrategia()){         
+            for(int i=0; i<ArraySize(estrategias); i++)
               {
-               string comment=PositionGetString(POSITION_COMMENT);
-               //ENUM_ORDER_TYPE orderType=((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE));
-               //if(currentEstrategia.orderType==orderType)
-               if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
-                 {
-                  customPrint("close 5.2.1 "+comment);
-                  customPrint("close 5.2 "+currentEstrategia.EstrategiaId);
-                  currentEstrategia.open=true;
+               Estrategy *currentEstrategia=estrategias[i];
+               currentEstrategia.open=false;
+               customPrint("close 5.1");
+               if(PositionSelect(currentEstrategia.pair)) {
+                  string comment=PositionGetString(POSITION_COMMENT);
+                  //ENUM_ORDER_TYPE orderType=((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE));
+                  //if(currentEstrategia.orderType==orderType)
+                  if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
+                    {
+                     customPrint("close 5.2.1 "+comment);
+                     customPrint("close 5.2 "+currentEstrategia.EstrategiaId);
+                     currentEstrategia.open=true;
+                     break;
+                    }
                  }
               }
            }
@@ -730,9 +854,8 @@ void processClose()
      }
    lastTotalPositions=positionsTotal;
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+  */
+
 double exponent(double base,int exponent)
   {
    double value=base;
@@ -804,9 +927,6 @@ double nextLot(Estrategy *currentEstrategia)
    uint     total=HistoryDealsTotal();
 //Print("total="+total);
    for(uint i=total;i>0;i--)
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
      {
       //Print("i="+i);
       if((ticket=HistoryDealGetTicket(i-1))>0)
@@ -923,84 +1043,84 @@ void printBuyEvaluation(Difference *difference,Estrategy *currentEstrategia,doub
       customPrint("(currentEstrategia.orderType==ORDER_TYPE_BUY) FAILED");
       //        } else if(!(pipsComparer<=pipsFixer)) {
       //    customPrint("((last_tick.ask-high)<=pipsFixer) FAILED");
-        } else if(!(difference.maDiff>=currentEstrategia.openMaLower)) {
+        } else if(!(difference.maDiff>=currentEstrategia.indicadorMa.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.maDiff >= currentEstrategia.openMaLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.openMaLower="+DoubleToString(currentEstrategia.openMaLower));
-        } else if(!(difference.maDiff<=currentEstrategia.openMaHigher)) {
+      customPrint("(difference.maDiff >= currentEstrategia.indicadorMa.openLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.indicadorMa.openLower="+DoubleToString(currentEstrategia.indicadorMa.openLower));
+        } else if(!(difference.maDiff<=currentEstrategia.indicadorMa.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.maDiff <= currentEstrategia.openMaHigher) FAILED");
-        } else if(!(difference.macdDiff>=currentEstrategia.openMacdLower)) {
+      customPrint("(difference.maDiff <= currentEstrategia.indicadorMa.openHigher) FAILED");
+        } else if(!(difference.macdDiff>=currentEstrategia.indicadorMacd.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.macdDiff >= currentEstrategia.openMacdLower) FAILED");
-        } else if(!(difference.macdDiff<=currentEstrategia.openMacdHigher)) {
+      customPrint("(difference.macdDiff >= currentEstrategia.indicadorMacd.openLower) FAILED");
+        } else if(!(difference.macdDiff<=currentEstrategia.indicadorMacd.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.macdDiff <= currentEstrategia.openMacdHigher) FAILED");
-        } else if(!(difference.maCompareDiff>=currentEstrategia.openMaCompareLower)) {
+      customPrint("(difference.macdDiff <= currentEstrategia.indicadorMacd.openHigher) FAILED");
+        } else if(!(difference.maCompareDiff>=currentEstrategia.indicadorMaCompare.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.maCompareDiff >= currentEstrategia.openMaCompareLower) FAILED");
-        } else if(!(difference.maCompareDiff<=currentEstrategia.openMaCompareHigher)) {
+      customPrint("(difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.openLower) FAILED");
+        } else if(!(difference.maCompareDiff<=currentEstrategia.indicadorMaCompare.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.maCompareDiff <= currentEstrategia.openMaCompareHigher) FAILED");
-        } else if(!(difference.sarDiff>=currentEstrategia.openSarLower)) {
+      customPrint("(difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.openHigher) FAILED");
+        } else if(!(difference.sarDiff>=currentEstrategia.indicadorSar.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.sarDiff >= currentEstrategia.openSarLower) FAILED");
-        } else if(!(difference.sarDiff<=currentEstrategia.openSarHigher)) {
+      customPrint("(difference.sarDiff >= currentEstrategia.indicadorSar.openLower) FAILED");
+        } else if(!(difference.sarDiff<=currentEstrategia.indicadorSar.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.sarDiff <= currentEstrategia.openSarHigher) FAILED");
-        } else if(!(difference.adxDiff>=currentEstrategia.openAdxLower)) {
+      customPrint("(difference.sarDiff <= currentEstrategia.indicadorSar.openHigher) FAILED");
+        } else if(!(difference.adxDiff>=currentEstrategia.indicadorAdx.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.adxDiff >= currentEstrategia.openAdxLower) FAILED");
-        } else if(!(difference.adxDiff<=currentEstrategia.openAdxHigher)) {
+      customPrint("(difference.adxDiff >= currentEstrategia.indicadorAdx.openLower) FAILED");
+        } else if(!(difference.adxDiff<=currentEstrategia.indicadorAdx.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.adxDiff <= currentEstrategia.openAdxHigher) FAILED");
-        } else if(!(difference.rsiDiff>=currentEstrategia.openRsiLower)) {
+      customPrint("(difference.adxDiff <= currentEstrategia.indicadorAdx.openHigher) FAILED");
+        } else if(!(difference.rsiDiff>=currentEstrategia.indicadorRsi.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.rsiDiff >= currentEstrategia.openRsiLower) FAILED");
-        } else if(!(difference.rsiDiff<=currentEstrategia.openRsiHigher)) {
+      customPrint("(difference.rsiDiff >= currentEstrategia.indicadorRsi.openLower) FAILED");
+        } else if(!(difference.rsiDiff<=currentEstrategia.indicadorRsi.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.rsiDiff <= currentEstrategia.openRsiHigher) FAILED");
-        } else if(!(difference.bollingerDiff>=currentEstrategia.openBollingerLower)) {
+      customPrint("(difference.rsiDiff <= currentEstrategia.indicadorRsi.openHigher) FAILED");
+        } else if(!(difference.bollingerDiff>=currentEstrategia.indicadorBollinger.openLower)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.bollingerDiff >= currentEstrategia.openBollingerLower) FAILED");
-        } else if(!(difference.bollingerDiff<=currentEstrategia.openBollingerHigher)) {
+      customPrint("(difference.bollingerDiff >= currentEstrategia.indicadorBollinger.openLower) FAILED");
+        } else if(!(difference.bollingerDiff<=currentEstrategia.indicadorBollinger.openHigher)) {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.bollingerDiff <= currentEstrategia.openBollingerHigher) FAILED");
-        } else if(!(difference.momentumDiff>=currentEstrategia.openMomentumLower)) {
-      customPrint("(difference.momentumDiff >= currentEstrategia.openMomentumLower) FAILED");
-        } else if(!(difference.momentumDiff<=currentEstrategia.openMomentumHigher)) {
-      customPrint("(difference.momentumDiff <= currentEstrategia.openMomentumHigher) FAILED");
-        } else if(!(difference.ichiTrendDiff>=currentEstrategia.openIchiTrendLower)) {
-      customPrint("(difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendLower="+DoubleToString(currentEstrategia.openIchiTrendLower));
-        } else if(!(difference.ichiTrendDiff<=currentEstrategia.openIchiTrendHigher)) {
-      customPrint("(difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendHigher="+DoubleToString(currentEstrategia.openIchiTrendHigher));
+      customPrint("(difference.bollingerDiff <= currentEstrategia.indicadorBollinger.openHigher) FAILED");
+        } else if(!(difference.momentumDiff>=currentEstrategia.indicadorMomentum.openLower)) {
+      customPrint("(difference.momentumDiff >= currentEstrategia.indicadorMomentum.openLower) FAILED");
+        } else if(!(difference.momentumDiff<=currentEstrategia.indicadorMomentum.openHigher)) {
+      customPrint("(difference.momentumDiff <= currentEstrategia.indicadorMomentum.openHigher) FAILED");
+        } else if(!(difference.ichiTrendDiff>=currentEstrategia.indicadorIchiTrend.openLower)) {
+      customPrint("(difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.openLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.openLower="+DoubleToString(currentEstrategia.indicadorIchiTrend.openLower));
+        } else if(!(difference.ichiTrendDiff<=currentEstrategia.indicadorIchiTrend.openHigher)) {
+      customPrint("(difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.openHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.openHigher="+DoubleToString(currentEstrategia.indicadorIchiTrend.openHigher));
         } else if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.openLower)) {
       customPrint("(difference.ichiSignalDiff >= currentEstrategia.openIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.openIchiSignalLower="+DoubleToString(currentEstrategia.indicadorIchiSignal.openLower));
       customPrint(ichiTenkanSen);
@@ -1031,143 +1151,143 @@ void printSellEvaluation(Difference *difference,Estrategy *currentEstrategia,dou
       //} else if(!(pipsComparer<=pipsFixer)) {
       customPrint("((low-last_tick.bid)<=pipsFixer) FAILED");
      }
-   if(!(difference.maDiff>=currentEstrategia.openMaLower))
+   if(!(difference.maDiff>=currentEstrategia.indicadorMa.openLower))
      {
-      customPrint("(difference.maDiff >= currentEstrategia.openMaLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.openMaLower="+DoubleToString(currentEstrategia.openMaLower));
+      customPrint("(difference.maDiff >= currentEstrategia.indicadorMa.openLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.indicadorMa.openLower="+DoubleToString(currentEstrategia.indicadorMa.openLower));
      }
-   if(!(difference.maDiff<=currentEstrategia.openMaHigher))
+   if(!(difference.maDiff<=currentEstrategia.indicadorMa.openHigher))
      {
-      customPrint("(difference.maDiff <= currentEstrategia.openMaHigher) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.openMaHigher="+DoubleToString(currentEstrategia.openMaHigher));
+      customPrint("(difference.maDiff <= currentEstrategia.indicadorMa.openHigher) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.indicadorMa.openHigher="+DoubleToString(currentEstrategia.indicadorMa.openHigher));
      }
-   if(!(difference.macdDiff>=currentEstrategia.openMacdLower))
+   if(!(difference.macdDiff>=currentEstrategia.indicadorMacd.openLower))
      {
-      customPrint("(difference.macdDiff >= currentEstrategia.openMacdLower) FAILED");
+      customPrint("(difference.macdDiff >= currentEstrategia.indicadorMacd.openLower) FAILED");
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.macdDiff<=currentEstrategia.openMacdHigher))
+   if(!(difference.macdDiff<=currentEstrategia.indicadorMacd.openHigher))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.macdDiff <= currentEstrategia.openMacdHigher) FAILED");
+      customPrint("(difference.macdDiff <= currentEstrategia.indicadorMacd.openHigher) FAILED");
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.maCompareDiff>=currentEstrategia.openMaCompareLower))
+   if(!(difference.maCompareDiff>=currentEstrategia.indicadorMaCompare.openLower))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.maCompareDiff >= currentEstrategia.openMaCompareLower) FAILED");
+      customPrint("(difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.openLower) FAILED");
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.maCompareDiff<=currentEstrategia.openMaCompareHigher))
+   if(!(difference.maCompareDiff<=currentEstrategia.indicadorMaCompare.openHigher))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.maCompareDiff <= currentEstrategia.openMaCompareHigher) FAILED");
+      customPrint("(difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.openHigher) FAILED");
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.sarDiff>=currentEstrategia.openSarLower))
-     {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+      
-      customPrint("(difference.sarDiff >= currentEstrategia.openSarLower) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.openSarLower="+DoubleToString(currentEstrategia.openSarLower));
-     }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-   if(!(difference.sarDiff<=currentEstrategia.openSarHigher))
-     {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
-      customPrint("(difference.sarDiff <= currentEstrategia.openSarHigher) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.openSarHigher="+DoubleToString(currentEstrategia.openSarHigher));
-     }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-   if(!(difference.adxDiff>=currentEstrategia.openAdxLower))
-     {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
-      customPrint("(difference.adxDiff >= currentEstrategia.openAdxLower) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.openAdxLower="+DoubleToString(currentEstrategia.openAdxLower));
-     }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-   if(!(difference.adxDiff<=currentEstrategia.openAdxHigher))
-     {
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
-      customPrint("(difference.adxDiff <= currentEstrategia.openAdxHigher) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.openAdxHigher="+DoubleToString(currentEstrategia.openAdxHigher));
-     }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-   if(!(difference.rsiDiff>=currentEstrategia.openRsiLower))
+   if(!(difference.sarDiff>=currentEstrategia.indicadorSar.openLower))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+      
-      customPrint("(difference.rsiDiff >= currentEstrategia.openRsiLower) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.openRsiLower="+DoubleToString(currentEstrategia.openRsiLower));
+      customPrint("(difference.sarDiff >= currentEstrategia.indicadorSar.openLower) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.indicadorSar.openLower="+DoubleToString(currentEstrategia.indicadorSar.openLower));
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.rsiDiff<=currentEstrategia.openRsiHigher))
+   if(!(difference.sarDiff<=currentEstrategia.indicadorSar.openHigher))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.rsiDiff <= currentEstrategia.openRsiHigher) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.openRsiHigher="+DoubleToString(currentEstrategia.openRsiHigher));
+      customPrint("(difference.sarDiff <= currentEstrategia.indicadorSar.openHigher) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.indicadorSar.openHigher="+DoubleToString(currentEstrategia.indicadorSar.openHigher));
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.bollingerDiff>=currentEstrategia.openBollingerLower))
+   if(!(difference.adxDiff>=currentEstrategia.indicadorAdx.openLower))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.bollingerDiff >= currentEstrategia.openBollingerLower) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.openBollingerLower="+DoubleToString(currentEstrategia.openBollingerLower));
+      customPrint("(difference.adxDiff >= currentEstrategia.indicadorAdx.openLower) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.indicadorAdx.openLower="+DoubleToString(currentEstrategia.indicadorAdx.openLower));
      }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   if(!(difference.bollingerDiff<=currentEstrategia.openBollingerHigher))
+   if(!(difference.adxDiff<=currentEstrategia.indicadorAdx.openHigher))
      {
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      customPrint("(difference.bollingerDiff <= currentEstrategia.openBollingerHigher) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.openBollingerHigher="+DoubleToString(currentEstrategia.openBollingerHigher));
+      customPrint("(difference.adxDiff <= currentEstrategia.indicadorAdx.openHigher) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.indicadorAdx.openHigher="+DoubleToString(currentEstrategia.indicadorAdx.openHigher));
      }
-   if(!(difference.momentumDiff>=currentEstrategia.openMomentumLower))
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+   if(!(difference.rsiDiff>=currentEstrategia.indicadorRsi.openLower))
      {
-      customPrint("(difference.momentumDiff >= currentEstrategia.openMomentumLower) FAILED");
+      //+------------------------------------------------------------------+
+      //|                                                                  |
+      //+------------------------------------------------------------------+      
+      customPrint("(difference.rsiDiff >= currentEstrategia.indicadorRsi.openLower) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.indicadorRsi.openLower="+DoubleToString(currentEstrategia.indicadorRsi.openLower));
      }
-   if(!(difference.momentumDiff<=currentEstrategia.openMomentumHigher))
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+   if(!(difference.rsiDiff<=currentEstrategia.indicadorRsi.openHigher))
      {
-      customPrint("(difference.momentumDiff <= currentEstrategia.openMomentumHigher) FAILED");
+      //+------------------------------------------------------------------+
+      //|                                                                  |
+      //+------------------------------------------------------------------+
+      customPrint("(difference.rsiDiff <= currentEstrategia.indicadorRsi.openHigher) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.indicadorRsi.openHigher="+DoubleToString(currentEstrategia.indicadorRsi.openHigher));
      }
-   if(!(difference.ichiTrendDiff>=currentEstrategia.openIchiTrendLower))
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+   if(!(difference.bollingerDiff>=currentEstrategia.indicadorBollinger.openLower))
      {
-      customPrint("(difference.ichiTrendDiff >= currentEstrategia.openIchiTrendLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendLower="+DoubleToString(currentEstrategia.openIchiTrendLower));
+      //+------------------------------------------------------------------+
+      //|                                                                  |
+      //+------------------------------------------------------------------+
+      customPrint("(difference.bollingerDiff >= currentEstrategia.indicadorBollinger.openLower) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.indicadorBollinger.openLower="+DoubleToString(currentEstrategia.indicadorBollinger.openLower));
      }
-   if(!(difference.ichiTrendDiff<=currentEstrategia.openIchiTrendHigher))
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+   if(!(difference.bollingerDiff<=currentEstrategia.indicadorBollinger.openHigher))
      {
-      customPrint("(difference.ichiTrendDiff <= currentEstrategia.openIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.openIchiTrendHigher="+DoubleToString(currentEstrategia.openIchiTrendHigher));
+      //+------------------------------------------------------------------+
+      //|                                                                  |
+      //+------------------------------------------------------------------+
+      customPrint("(difference.bollingerDiff <= currentEstrategia.indicadorBollinger.openHigher) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.indicadorBollinger.openHigher="+DoubleToString(currentEstrategia.indicadorBollinger.openHigher));
+     }
+   if(!(difference.momentumDiff>=currentEstrategia.indicadorMomentum.openLower))
+     {
+      customPrint("(difference.momentumDiff >= currentEstrategia.indicadorMomentum.openLower) FAILED");
+     }
+   if(!(difference.momentumDiff<=currentEstrategia.indicadorMomentum.openHigher))
+     {
+      customPrint("(difference.momentumDiff <= currentEstrategia.indicadorMomentum.openHigher) FAILED");
+     }
+   if(!(difference.ichiTrendDiff>=currentEstrategia.indicadorIchiTrend.openLower))
+     {
+      customPrint("(difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.openLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.openLower="+DoubleToString(currentEstrategia.indicadorIchiTrend.openLower));
+     }
+   if(!(difference.ichiTrendDiff<=currentEstrategia.indicadorIchiTrend.openHigher))
+     {
+      customPrint("(difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.openHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.openHigher="+DoubleToString(currentEstrategia.indicadorIchiTrend.openHigher));
      }
    if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.openLower))
      {
@@ -1201,42 +1321,42 @@ void printCloseBuyEvaluation(Difference *difference,Estrategy *currentEstrategia
       customPrint("(currentEstrategia.orderType==ORDER_TYPE_BUY) FAILED");
       //        } else if(!(pipsComparer<=pipsFixer)) {
       //    customPrint("((last_tick.ask-high)<=pipsFixer) FAILED");
-        } else if(!(difference.maDiff>=currentEstrategia.closeMaLower)) {
-      customPrint("(difference.maDiff >= currentEstrategia.closeMaLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.closeMaLower="+DoubleToString(currentEstrategia.closeMaLower));
-        } else if(!(difference.maDiff<=currentEstrategia.closeMaHigher)) {
-      customPrint("(difference.maDiff <= currentEstrategia.closeMaHigher) FAILED");
-        } else if(!(difference.macdDiff>=currentEstrategia.closeMacdLower)) {
-      customPrint("(difference.macdDiff >= currentEstrategia.closeMacdLower) FAILED");
-        } else if(!(difference.macdDiff<=currentEstrategia.closeMacdHigher)) {
-      customPrint("(difference.macdDiff <= currentEstrategia.closeMacdHigher) FAILED");
-        } else if(!(difference.maCompareDiff>=currentEstrategia.closeMaCompareLower)) {
-      customPrint("(difference.maCompareDiff >= currentEstrategia.closeMaCompareLower) FAILED");
-        } else if(!(difference.maCompareDiff<=currentEstrategia.closeMaCompareHigher)) {
-      customPrint("(difference.maCompareDiff <= currentEstrategia.closeMaCompareHigher) FAILED");
-        } else if(!(difference.sarDiff>=currentEstrategia.closeSarLower)) {
-      customPrint("(difference.sarDiff >= currentEstrategia.closeSarLower) FAILED");
-        } else if(!(difference.sarDiff<=currentEstrategia.closeSarHigher)) {
-      customPrint("(difference.sarDiff <= currentEstrategia.closeSarHigher) FAILED");
-        } else if(!(difference.adxDiff>=currentEstrategia.closeAdxLower)) {
-      customPrint("(difference.adxDiff >= currentEstrategia.closeAdxLower) FAILED");
-        } else if(!(difference.adxDiff<=currentEstrategia.closeAdxHigher)) {
-      customPrint("(difference.adxDiff <= currentEstrategia.closeAdxHigher) FAILED");
-        } else if(!(difference.rsiDiff>=currentEstrategia.closeRsiLower)) {
-      customPrint("(difference.rsiDiff >= currentEstrategia.closeRsiLower) FAILED");
-        } else if(!(difference.rsiDiff<=currentEstrategia.closeRsiHigher)) {
-      customPrint("(difference.rsiDiff <= currentEstrategia.closeRsiHigher) FAILED");
-        } else if(!(difference.bollingerDiff>=currentEstrategia.closeBollingerLower)) {
-      customPrint("(difference.bollingerDiff >= currentEstrategia.closeBollingerLower) FAILED");
-        } else if(!(difference.bollingerDiff<=currentEstrategia.closeBollingerHigher)) {
-      customPrint("(difference.bollingerDiff <= currentEstrategia.closeBollingerHigher) FAILED");
-        } else if(!(difference.momentumDiff>=currentEstrategia.closeMomentumLower)) {
-      customPrint("(difference.momentumDiff >= currentEstrategia.closeMomentumLower) FAILED");
-        } else if(!(difference.momentumDiff<=currentEstrategia.closeMomentumHigher)) {
-      customPrint("(difference.momentumDiff <= currentEstrategia.closeMomentumHigher) FAILED");
-        } else if(!(difference.ichiTrendDiff>=currentEstrategia.closeIchiTrendLower)) {
-      customPrint("(difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendLower="+DoubleToString(currentEstrategia.closeIchiTrendLower));
-        } else if(!(difference.ichiTrendDiff<=currentEstrategia.closeIchiTrendHigher)) {
-      customPrint("(difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendHigher="+DoubleToString(currentEstrategia.closeIchiTrendHigher));
+        } else if(!(difference.maDiff>=currentEstrategia.indicadorMa.closeLower)) {
+      customPrint("(difference.maDiff >= currentEstrategia.indicadorMa.closeLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.indicadorMa.closeLower="+DoubleToString(currentEstrategia.indicadorMa.closeLower));
+        } else if(!(difference.maDiff<=currentEstrategia.indicadorMa.closeHigher)) {
+      customPrint("(difference.maDiff <= currentEstrategia.indicadorMa.closeHigher) FAILED");
+        } else if(!(difference.macdDiff>=currentEstrategia.indicadorMacd.closeLower)) {
+      customPrint("(difference.macdDiff >= currentEstrategia.indicadorMacd.closeLower) FAILED");
+        } else if(!(difference.macdDiff<=currentEstrategia.indicadorMacd.closeHigher)) {
+      customPrint("(difference.macdDiff <= currentEstrategia.indicadorMacd.closeHigher) FAILED");
+        } else if(!(difference.maCompareDiff>=currentEstrategia.indicadorMaCompare.closeLower)) {
+      customPrint("(difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.closeLower) FAILED");
+        } else if(!(difference.maCompareDiff<=currentEstrategia.indicadorMaCompare.closeHigher)) {
+      customPrint("(difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.closeHigher) FAILED");
+        } else if(!(difference.sarDiff>=currentEstrategia.indicadorSar.closeLower)) {
+      customPrint("(difference.sarDiff >= currentEstrategia.indicadorSar.closeLower) FAILED");
+        } else if(!(difference.sarDiff<=currentEstrategia.indicadorSar.closeHigher)) {
+      customPrint("(difference.sarDiff <= currentEstrategia.indicadorSar.closeHigher) FAILED");
+        } else if(!(difference.adxDiff>=currentEstrategia.indicadorAdx.closeLower)) {
+      customPrint("(difference.adxDiff >= currentEstrategia.indicadorAdx.closeLower) FAILED");
+        } else if(!(difference.adxDiff<=currentEstrategia.indicadorAdx.closeHigher)) {
+      customPrint("(difference.adxDiff <= currentEstrategia.indicadorAdx.closeHigher) FAILED");
+        } else if(!(difference.rsiDiff>=currentEstrategia.indicadorRsi.closeLower)) {
+      customPrint("(difference.rsiDiff >= currentEstrategia.indicadorRsi.closeLower) FAILED");
+        } else if(!(difference.rsiDiff<=currentEstrategia.indicadorRsi.closeHigher)) {
+      customPrint("(difference.rsiDiff <= currentEstrategia.indicadorRsi.closeHigher) FAILED");
+        } else if(!(difference.bollingerDiff>=currentEstrategia.indicadorBollinger.closeLower)) {
+      customPrint("(difference.bollingerDiff >= currentEstrategia.indicadorBollinger.closeLower) FAILED");
+        } else if(!(difference.bollingerDiff<=currentEstrategia.indicadorBollinger.closeHigher)) {
+      customPrint("(difference.bollingerDiff <= currentEstrategia.indicadorBollinger.closeHigher) FAILED");
+        } else if(!(difference.momentumDiff>=currentEstrategia.indicadorMomentum.closeLower)) {
+      customPrint("(difference.momentumDiff >= currentEstrategia.indicadorMomentum.closeLower) FAILED");
+        } else if(!(difference.momentumDiff<=currentEstrategia.indicadorMomentum.closeHigher)) {
+      customPrint("(difference.momentumDiff <= currentEstrategia.indicadorMomentum.closeHigher) FAILED");
+        } else if(!(difference.ichiTrendDiff>=currentEstrategia.indicadorIchiTrend.closeLower)) {
+      customPrint("(difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.closeLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.closeLowe="+DoubleToString(currentEstrategia.indicadorIchiTrend.closeLower));
+        } else if(!(difference.ichiTrendDiff<=currentEstrategia.indicadorIchiTrend.closeHigher)) {
+      customPrint("(difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.closeHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.closeHigher="+DoubleToString(currentEstrategia.indicadorIchiTrend.closeHigher));
         } else if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.closeLower)) {
       customPrint("(difference.ichiSignalDiff >= currentEstrategia.closeIchiSignalLower) FAILED: difference.ichiSignalDiff="+DoubleToString(difference.ichiSignalDiff)+",currentEstrategia.closeIchiSignalLower="+DoubleToString(currentEstrategia.indicadorIchiSignal.closeLower));
         } else if(!(difference.ichiSignalDiff<=currentEstrategia.indicadorIchiSignal.closeHigher)) {
@@ -1260,157 +1380,157 @@ void printCloseSellEvaluation(Difference *difference,Estrategy *currentEstrategi
       //} else if(!(pipsComparer<=pipsFixer)) {
       customPrint("((low-last_tick.bid)<=pipsFixer) FAILED");
         }else {
-      if(!(difference.maDiff>=currentEstrategia.closeMaLower))
+      if(!(difference.maDiff>=currentEstrategia.indicadorMa.closeLower))
         {
-         customPrint("(difference.maDiff >= currentEstrategia.closeMaLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.closeMaLower="+DoubleToString(currentEstrategia.closeMaLower));
+         customPrint("(difference.maDiff >= currentEstrategia.indicadorMa.closeLower) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.indicadorMa.closeLower="+DoubleToString(currentEstrategia.indicadorMa.closeLower));
         }
-      if(!(difference.maDiff<=currentEstrategia.closeMaHigher))
+      if(!(difference.maDiff<=currentEstrategia.indicadorMa.closeHigher))
         {
-         customPrint("(difference.maDiff <= currentEstrategia.closeMaHigher) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.closeMaHigher="+DoubleToString(currentEstrategia.closeMaHigher));
+         customPrint("(difference.maDiff <= currentEstrategia.indicadorMa.closeHigher) FAILED: difference.maDiff="+DoubleToString(difference.maDiff)+",currentEstrategia.indicadorMa.closeHigher="+DoubleToString(currentEstrategia.indicadorMa.closeHigher));
         }
-      if(!(difference.macdDiff>=currentEstrategia.closeMacdLower))
+      if(!(difference.macdDiff>=currentEstrategia.indicadorMacd.closeLower))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.macdDiff >= currentEstrategia.closeMacdLower) FAILED: difference.macdDiff="+DoubleToString(difference.macdDiff)+",currentEstrategia.closeMacdLower="+DoubleToString(currentEstrategia.closeMacdLower));
-        }
-      //+------------------------------------------------------------------+
-      //|                                                                  |
-      //+------------------------------------------------------------------+
-      if(!(difference.macdDiff<=currentEstrategia.closeMacdHigher))
-        {
-         //+------------------------------------------------------------------+
-         //|                                                                  |
-         //+------------------------------------------------------------------+
-         customPrint("(difference.macdDiff <= currentEstrategia.closeMacdHigher) FAILED: difference.macdDiff="+DoubleToString(difference.macdDiff)+",currentEstrategia.closeMacdHigher="+DoubleToString(currentEstrategia.closeMacdHigher));
+         customPrint("(difference.macdDiff >= currentEstrategia.indicadorMacd.closeLower) FAILED: difference.macdDiff="+DoubleToString(difference.macdDiff)+",currentEstrategia.indicadorMacd.closeLower="+DoubleToString(currentEstrategia.indicadorMacd.closeLower));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.maCompareDiff>=currentEstrategia.closeMaCompareLower))
+      if(!(difference.macdDiff<=currentEstrategia.indicadorMacd.closeHigher))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.maCompareDiff >= currentEstrategia.closeMaCompareLower) FAILED: difference.maCompareDiff="+DoubleToString(difference.maCompareDiff)+",currentEstrategia.closeMaCompareLower="+DoubleToString(currentEstrategia.closeMaCompareLower));
+         customPrint("(difference.macdDiff <= currentEstrategia.indicadorMacd.closeHigher) FAILED: difference.macdDiff="+DoubleToString(difference.macdDiff)+",currentEstrategia.indicadorMacd.closeHigher="+DoubleToString(currentEstrategia.indicadorMacd.closeHigher));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.maCompareDiff<=currentEstrategia.closeMaCompareHigher))
+      if(!(difference.maCompareDiff>=currentEstrategia.indicadorMaCompare.closeLower))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.maCompareDiff <= currentEstrategia.closeMaCompareLower) FAILED: difference.maCompareDiff="+DoubleToString(difference.maCompareDiff)+",currentEstrategia.closeMaCompareHigher="+DoubleToString(currentEstrategia.closeMaCompareHigher));
+         customPrint("(difference.maCompareDiff >= currentEstrategia.indicadorMaCompare.closeLower) FAILED: difference.maCompareDiff="+DoubleToString(difference.maCompareDiff)+",currentEstrategia.indicadorMaCompare.closeLower="+DoubleToString(currentEstrategia.indicadorMaCompare.closeLower));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.sarDiff>=currentEstrategia.closeSarLower))
+      if(!(difference.maCompareDiff<=currentEstrategia.indicadorMaCompare.closeHigher))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.sarDiff >= currentEstrategia.closeSarLower) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.closeSarLower="+DoubleToString(currentEstrategia.closeSarLower));
+         customPrint("(difference.maCompareDiff <= currentEstrategia.indicadorMaCompare.closeLower) FAILED: difference.maCompareDiff="+DoubleToString(difference.maCompareDiff)+",currentEstrategia.indicadorMaCompare.closeHigher="+DoubleToString(currentEstrategia.indicadorMaCompare.closeHigher));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.sarDiff<=currentEstrategia.closeSarHigher))
+      if(!(difference.sarDiff>=currentEstrategia.indicadorSar.closeLower))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.sarDiff <= currentEstrategia.closeSarHigher) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.closeSarHigher="+DoubleToString(currentEstrategia.closeSarHigher));
+         customPrint("(difference.sarDiff >= currentEstrategia.indicadorSar.closeLower) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.indicadorSar.closeLower="+DoubleToString(currentEstrategia.indicadorSar.closeLower));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.adxDiff>=currentEstrategia.closeAdxLower))
+      if(!(difference.sarDiff<=currentEstrategia.indicadorSar.closeHigher))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.adxDiff >= currentEstrategia.closeAdxLower) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.closeAdxLower="+DoubleToString(currentEstrategia.closeAdxLower));
+         customPrint("(difference.sarDiff <= currentEstrategia.indicadorSar.closeHigher) FAILED: difference.sarDiff="+DoubleToString(difference.sarDiff)+",currentEstrategia.indicadorSar.closeHigher="+DoubleToString(currentEstrategia.indicadorSar.closeHigher));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.adxDiff<=currentEstrategia.closeAdxHigher))
+      if(!(difference.adxDiff>=currentEstrategia.indicadorAdx.closeLower))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.adxDiff <= currentEstrategia.closeAdxHigher) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.closeAdxHigher="+DoubleToString(currentEstrategia.closeAdxHigher));
+         customPrint("(difference.adxDiff >= currentEstrategia.indicadorAdx.closeLower) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.indicadorAdx.closeLower="+DoubleToString(currentEstrategia.indicadorAdx.closeLower));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.rsiDiff>=currentEstrategia.closeRsiLower))
+      if(!(difference.adxDiff<=currentEstrategia.indicadorAdx.closeHigher))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.rsiDiff >= currentEstrategia.closeRsiLower) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.closeRsiLower="+DoubleToString(currentEstrategia.closeRsiLower));
+         customPrint("(difference.adxDiff <= currentEstrategia.indicadorAdx.closeHigher) FAILED: difference.adxDiff="+DoubleToString(difference.adxDiff)+",currentEstrategia.indicadorAdx.closeHigher="+DoubleToString(currentEstrategia.indicadorAdx.closeHigher));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.rsiDiff<=currentEstrategia.closeRsiHigher))
+      if(!(difference.rsiDiff>=currentEstrategia.indicadorRsi.closeLower))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.rsiDiff <= currentEstrategia.closeRsiHigher) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.closeRsiHigher="+DoubleToString(currentEstrategia.closeRsiHigher));
+         customPrint("(difference.rsiDiff >= currentEstrategia.indicadorRsi.closeLower) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.indicadorRsi.closeLower="+DoubleToString(currentEstrategia.indicadorRsi.closeLower));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.bollingerDiff>=currentEstrategia.closeBollingerLower))
+      if(!(difference.rsiDiff<=currentEstrategia.indicadorRsi.closeHigher))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.bollingerDiff >= currentEstrategia.closeBollingerLower) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.closeBollingerLower="+DoubleToString(currentEstrategia.closeBollingerLower));
+         customPrint("(difference.rsiDiff <= currentEstrategia.indicadorRsi.closeHigher) FAILED: difference.rsiDiff="+DoubleToString(difference.rsiDiff)+",currentEstrategia.indicadorRsi.closeHigher="+DoubleToString(currentEstrategia.indicadorRsi.closeHigher));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.bollingerDiff<=currentEstrategia.closeBollingerHigher))
+      if(!(difference.bollingerDiff>=currentEstrategia.indicadorBollinger.closeLower))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.bollingerDiff <= currentEstrategia.closeBollingerHigher) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.closeBollingerHigher="+DoubleToString(currentEstrategia.closeBollingerHigher));
+         customPrint("(difference.bollingerDiff >= currentEstrategia.indicadorBollinger.closeLower) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.indicadorBollinger.closeLower="+DoubleToString(currentEstrategia.indicadorBollinger.closeLower));
         }
       //+------------------------------------------------------------------+
       //|                                                                  |
       //+------------------------------------------------------------------+
-      if(!(difference.momentumDiff>=currentEstrategia.closeMomentumLower))
+      if(!(difference.bollingerDiff<=currentEstrategia.indicadorBollinger.closeHigher))
         {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.momentumDiff <= currentEstrategia.closeMomentumLower) FAILED: difference.momentumDiff="+DoubleToString(difference.momentumDiff)+",currentEstrategia.closeMomentumLower="+DoubleToString(currentEstrategia.closeMomentumLower));
-           }  if(!(difference.momentumDiff<=currentEstrategia.closeMomentumHigher)) {
+         customPrint("(difference.bollingerDiff <= currentEstrategia.indicadorBollinger.closeHigher) FAILED: difference.bollingerDiff="+DoubleToString(difference.bollingerDiff)+",currentEstrategia.indicadorBollinger.closeHigher="+DoubleToString(currentEstrategia.indicadorBollinger.closeHigher));
+        }
+      //+------------------------------------------------------------------+
+      //|                                                                  |
+      //+------------------------------------------------------------------+
+      if(!(difference.momentumDiff>=currentEstrategia.indicadorMomentum.closeLower))
+        {
+         //+------------------------------------------------------------------+
+         //|                                                                  |
+         //+------------------------------------------------------------------+
+         customPrint("(difference.momentumDiff <= currentEstrategia.indicadorMomentum.closeLower) FAILED: difference.momentumDiff="+DoubleToString(difference.momentumDiff)+",currentEstrategia.indicadorMomentum.closeLower="+DoubleToString(currentEstrategia.indicadorMomentum.closeLower));
+           }  if(!(difference.momentumDiff<=currentEstrategia.indicadorMomentum.closeHigher)) {
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
          //+------------------------------------------------------------------+
          //|                                                                  |
          //+------------------------------------------------------------------+
-         customPrint("(difference.momentumDiff <= currentEstrategia.closeMomentumHigher) FAILED: difference.momentumDiff="+DoubleToString(difference.momentumDiff)+",currentEstrategia.closeMomentumHigher="+DoubleToString(currentEstrategia.closeMomentumHigher));
+         customPrint("(difference.momentumDiff <= currentEstrategia.indicadorMomentum.closeHigher) FAILED: difference.momentumDiff="+DoubleToString(difference.momentumDiff)+",currentEstrategia.indicadorMomentum.closeHigher="+DoubleToString(currentEstrategia.indicadorMomentum.closeHigher));
         }
 
-      if(!(difference.ichiTrendDiff>=currentEstrategia.closeIchiTrendLower))
+      if(!(difference.ichiTrendDiff>=currentEstrategia.indicadorIchiTrend.closeLower))
         {
-         customPrint("(difference.ichiTrendDiff >= currentEstrategia.closeIchiTrendLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendLower="+DoubleToString(currentEstrategia.closeIchiTrendLower));
+         customPrint("(difference.ichiTrendDiff >= currentEstrategia.indicadorIchiTrend.closeLower) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.closeLowe="+DoubleToString(currentEstrategia.indicadorIchiTrend.closeLower));
         }
-      if(!(difference.ichiTrendDiff<=currentEstrategia.closeIchiTrendHigher))
+      if(!(difference.ichiTrendDiff<=currentEstrategia.indicadorIchiTrend.closeHigher))
         {
-         customPrint("(difference.ichiTrendDiff <= currentEstrategia.closeIchiTrendHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.closeIchiTrendHigher="+DoubleToString(currentEstrategia.closeIchiTrendHigher));
+         customPrint("(difference.ichiTrendDiff <= currentEstrategia.indicadorIchiTrend.closeHigher) FAILED: difference.ichiTrendDiff="+DoubleToString(difference.ichiTrendDiff)+",currentEstrategia.indicadorIchiTrend.closeHigher="+DoubleToString(currentEstrategia.indicadorIchiTrend.closeHigher));
         }
 
       if(!(difference.ichiSignalDiff>=currentEstrategia.indicadorIchiSignal.closeLower))
