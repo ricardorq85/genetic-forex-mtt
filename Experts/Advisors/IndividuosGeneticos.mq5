@@ -18,7 +18,7 @@
 
 //--- input parameters 
 input string   fileName="estrategias.csv";
-input string   compare="EURUSD";
+input string   compare="EURUSD"; 
 input bool   print=false;
 input bool   calculateLot=false;
 input bool   cerrarPorCantidad=false;
