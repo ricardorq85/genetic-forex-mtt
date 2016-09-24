@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                  ChartCanvas.mqh |
-//|                   Copyright 2009-2013, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2016, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
 #include "..\Canvas.mqh"
@@ -735,7 +735,7 @@ int CChartCanvas::DrawLegendVertical(const int w,const int h)
      }
 //--- draw
    int x0=(m_legend_alignment==ALIGNMENT_RIGHT) ? width-w*cols+h : h;
-   int x;
+   int x=0;
    int y =-h/2;
    int i;
    if(m_data_total==m_index_size)

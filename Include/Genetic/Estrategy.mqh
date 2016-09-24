@@ -94,13 +94,13 @@ Estrategy::Estrategy()
    indicadorMacd = new Indicador("MACD");
    indicadorMaCompare = new Indicador("MACOMPARE");
    indicadorSar = new Indicador("SAR");
-   indicadorAdx = new Indicador("");
+   indicadorAdx = new Indicador("ADX");
    indicadorRsi = new Indicador("RSI");
    indicadorBollinger = new Indicador("BOLLINGER");
    indicadorMomentum = new Indicador("MOMENTUM");
    indicadorIchiSignal = new Indicador("ICHISIGNAL");
    indicadorIchiTrend = new Indicador("ICHITREND");
-   indicadorMa1200 = new Indicador("M1200");
+   indicadorMa1200 = new Indicador("MA1200");
    indicadorMacd20x = new Indicador("MACD1200");
    indicadorMaCompare1200 = new Indicador("MACOMPARE1200");
    indicadorSar1200 = new Indicador("SAR1200");

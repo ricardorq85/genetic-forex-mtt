@@ -68,6 +68,7 @@ public:
    void              Result(MqlTradeResult &result)        const;
    uint              ResultRetcode(void)                   const { return(m_result.retcode);            }
    string            ResultRetcodeDescription(void)        const;
+   int               ResultRetcodeExternal(void)           const { return(m_result.retcode_external);   }
    ulong             ResultDeal(void)                      const { return(m_result.deal);               }
    ulong             ResultOrder(void)                     const { return(m_result.order);              }
    double            ResultVolume(void)                    const { return(m_result.volume);             }
@@ -254,6 +255,7 @@ void CTrade::Result(MqlTradeResult &result) const
    result.ask       =m_result.ask;
    result.comment   =m_result.comment;
    result.request_id=m_result.request_id;
+   result.retcode_external=m_result.retcode_external;
   }
 //+------------------------------------------------------------------+
 //| Get the retcode value as string                                  |
@@ -1119,6 +1121,14 @@ string CTrade::FormatRequest(string &str,const MqlTradeRequest &request) const
       //--- deleting a pending order
       case TRADE_ACTION_REMOVE:
          str=StringFormat("cancel #%I64u",request.order);
+         break;
+
+      //--- close by
+      case TRADE_ACTION_CLOSE_BY:
+         if(IsHedging() && request.position!=0)
+            str=StringFormat("close position #%I64u by #%I64u",request.position,request.position_by);
+         else
+            str=StringFormat("wrong action close by (#%I64u by #%I64u)",request.position,request.position_by);
          break;
 
       default:

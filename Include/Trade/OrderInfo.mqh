@@ -43,6 +43,7 @@ public:
    string            TypeTimeDescription(void) const;
    long              Magic(void) const;
    long              PositionId(void) const;
+   long              PositionById(void) const;
    //--- fast access methods to the double order propertyes
    double            VolumeInitial(void) const;
    double            VolumeCurrent(void) const;
@@ -54,6 +55,7 @@ public:
    //--- fast access methods to the string order propertyes
    string            Symbol(void) const;
    string            Comment(void) const;
+   string            ExternalId(void) const;
    //--- access methods to the API MQL5 functions
    bool              InfoInteger(const ENUM_ORDER_PROPERTY_INTEGER prop_id,long &var) const;
    bool              InfoDouble(const ENUM_ORDER_PROPERTY_DOUBLE prop_id,double &var) const;
@@ -206,6 +208,13 @@ long COrderInfo::PositionId(void) const
    return(OrderGetInteger(ORDER_POSITION_ID));
   }
 //+------------------------------------------------------------------+
+//| Get the property value "ORDER_POSITION_BY_ID"                    |
+//+------------------------------------------------------------------+
+long COrderInfo::PositionById(void) const
+  {
+   return(OrderGetInteger(ORDER_POSITION_BY_ID));
+  }
+//+------------------------------------------------------------------+
 //| Get the property value "ORDER_VOLUME_INITIAL"                    |
 //+------------------------------------------------------------------+
 double COrderInfo::VolumeInitial(void) const
@@ -269,6 +278,13 @@ string COrderInfo::Comment(void) const
    return(OrderGetString(ORDER_COMMENT));
   }
 //+------------------------------------------------------------------+
+//| Get the property value "ORDER_EXTERNAL_ID"                       |
+//+------------------------------------------------------------------+
+string COrderInfo::ExternalId(void) const
+  {
+   return(OrderGetString(ORDER_EXTERNAL_ID));
+  }
+//+------------------------------------------------------------------+
 //| Access functions OrderGetInteger(...)                            |
 //+------------------------------------------------------------------+
 bool COrderInfo::InfoInteger(const ENUM_ORDER_PROPERTY_INTEGER prop_id,long &var) const
@@ -307,6 +323,7 @@ string COrderInfo::FormatType(string &str,const uint type) const
       case ORDER_TYPE_SELL_STOP      : str="sell stop";       break;
       case ORDER_TYPE_BUY_STOP_LIMIT : str="buy stop limit";  break;
       case ORDER_TYPE_SELL_STOP_LIMIT: str="sell stop limit"; break;
+      case ORDER_TYPE_CLOSE_BY       : str="close by";        break;
 
       default:
          str="unknown order type "+(string)type;
@@ -332,9 +349,9 @@ string COrderInfo::FormatStatus(string &str,const uint status) const
       case ORDER_STATE_FILLED        : str="filled";             break;
       case ORDER_STATE_REJECTED      : str="rejected";           break;
       case ORDER_STATE_EXPIRED       : str="expired";            break;
-//      case ORDER_STATE_REQUEST_ADD   : str="request adding";     break;
-//      case ORDER_STATE_REQUEST_MODIFY: str="request modifying";  break;
-//      case ORDER_STATE_REQUEST_CANCEL: str="request cancelling"; break;
+      case ORDER_STATE_REQUEST_ADD   : str="request adding";     break;
+      case ORDER_STATE_REQUEST_MODIFY: str="request modifying";  break;
+      case ORDER_STATE_REQUEST_CANCEL: str="request cancelling"; break;
 
       default:
          str="unknown order status "+(string)status;
@@ -434,14 +451,14 @@ string COrderInfo::FormatPrice(string &str,const double price_order,const double
    return(str);
   }
 //+------------------------------------------------------------------+
-//| Selecting a order to access                                      |
+//| Selecting an order to access                                     |
 //+------------------------------------------------------------------+
 bool COrderInfo::Select(void)
   {
    return(OrderSelect(m_ticket));
   }
 //+------------------------------------------------------------------+
-//| Selecting a order to access                                      |
+//| Selecting an order to access                                     |
 //+------------------------------------------------------------------+
 bool COrderInfo::Select(const ulong ticket)
   {
@@ -455,7 +472,7 @@ bool COrderInfo::Select(const ulong ticket)
    return(false);
   }
 //+------------------------------------------------------------------+
-//| Select a order on the index                                      |
+//| Select an order on the index                                     |
 //+------------------------------------------------------------------+
 bool COrderInfo::SelectByIndex(const int index)
   {

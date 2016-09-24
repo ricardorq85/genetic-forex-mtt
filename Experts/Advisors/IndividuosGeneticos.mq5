@@ -11,14 +11,14 @@
 #include <Genetic\Estrategy.mqh>
 #include <Genetic\Vigencia.mqh>
 #include <Genetic\Difference.mqh>
-#include <Genetic\GestionMonetaria.mqh>
+#include <Genetic\GestionMonetariaProfit.mqh>
 #include <Genetic\ClosingManager.mqh>
 #include <Genetic\StopsEsperados.mqh>
 #include <Genetic\PrintManager.mqh>
 
 //--- input parameters 
 input string   fileName="estrategias.csv";
-input string   compare="EURUSD"; 
+input string   compare="EURUSD";
 input bool   print=false;
 input bool   calculateLot=false;
 input bool   cerrarPorCantidad=false;
@@ -108,11 +108,12 @@ datetime activeTime=NULL;
 datetime printBalance=NULL;
 int counter=1;
 int nextInitialIndex=0;
+int digitsIndicators=5;
 
 Vigencia *lastVigencia;
 Estrategy   *estrategias[];
 Vigencia   vigencias[];
-GestionMonetaria   *gestionMonetaria;
+GestionMonetariaProfit   *gestionMonetaria;
 ClosingManager *closingManager;
 Estrategy *estrategiaOpenPosition;
 CTrade     *trading;
@@ -136,7 +137,7 @@ int OnInit()
    initialBalance=AccountInfoDouble(ACCOUNT_BALANCE);
    balanceMaximoCuenta=initialBalance;
    
-   gestionMonetaria = new GestionMonetaria();
+   gestionMonetaria = new GestionMonetariaProfit();
    closingManager = new ClosingManager();
    estrategiaOpenPosition = new Estrategy();
    stopsEsperados = new StopsEsperados();   
@@ -389,71 +390,68 @@ void process()
    CopyBuffer(ichi6Handle,3,0,157,ichiSenkouSpanB6Buffer);
    CopyBuffer(ichi6Handle,4,0,157,ichiChinkouSpan6Buffer);
 
-   double ma=NormalizeDouble(maBuffer[shift],_Digits);
+   double ma=NormalizeDouble(maBuffer[shift], _Digits);
    double macdV = NormalizeDouble(macdMainBuffer[shift], _Digits);
    double macdS = NormalizeDouble(macdSignalBuffer[shift], _Digits);
-   double maCompare=NormalizeDouble(maCompareBuffer[shift],(int)SymbolInfoInteger(compare,SYMBOL_DIGITS));
-   double maCompare1200=NormalizeDouble(maCompare1200Buffer[shift],(int)SymbolInfoInteger(compare,SYMBOL_DIGITS));
+   double maCompare=NormalizeDouble(maCompareBuffer[shift], (int)SymbolInfoInteger(compare,SYMBOL_DIGITS));
+   double maCompare1200=NormalizeDouble(maCompare1200Buffer[shift], (int)SymbolInfoInteger(compare,SYMBOL_DIGITS));
 
-   double closeCompare=NormalizeDouble(rates_array_compare[shift].close,(int)SymbolInfoInteger(compare,SYMBOL_DIGITS));
+   double closeCompare=NormalizeDouble(rates_array_compare[shift].close, (int)SymbolInfoInteger(compare,SYMBOL_DIGITS));
 
-   double sar=NormalizeDouble(sarBuffer[shift],_Digits);
-   double adxValue= NormalizeDouble(adxMainBuffer[shift],_Digits);
-   double adxPlus = NormalizeDouble(adxPlusBuffer[shift],_Digits);
-   double adxMinus= NormalizeDouble(adxMinusBuffer[shift],_Digits);
-   double rsi=NormalizeDouble(rsiBuffer[shift],_Digits);
+   double sar=NormalizeDouble(sarBuffer[shift], _Digits);
+   double adxValue= NormalizeDouble(adxMainBuffer[shift], _Digits);
+   double adxPlus = NormalizeDouble(adxPlusBuffer[shift], _Digits);
+   double adxMinus= NormalizeDouble(adxMinusBuffer[shift], _Digits);
+   double rsi=NormalizeDouble(rsiBuffer[shift], _Digits);
    double bollingerUpper = NormalizeDouble(bandsUpperBuffer[shift], _Digits);
    double bollingerLower = NormalizeDouble(bandsLowerBuffer[shift], _Digits);
    double momentum=NormalizeDouble(momentumBuffer[shift],_Digits);
-   double ma1200=NormalizeDouble(ma1200Buffer[shift],_Digits);
+   double ma1200=NormalizeDouble(ma1200Buffer[shift], _Digits);
    double macd20xV = NormalizeDouble(macd20xMainBuffer[shift], _Digits);
    double macd20xS = NormalizeDouble(macd20xSignalBuffer[shift], _Digits);
    
-   ichiTenkanSen= NormalizeDouble(ichiTenkanSenBuffer[shift],_Digits);
-   ichiKijunSen = NormalizeDouble(ichiKijunSenBuffer[shift],_Digits);
-   ichiSpanA = NormalizeDouble(ichiSenkouSpanABuffer[shift],_Digits);
-   ichiSpanB = NormalizeDouble(ichiSenkouSpanBBuffer[shift],_Digits);
-   ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[26],_Digits);
+   ichiTenkanSen= NormalizeDouble(ichiTenkanSenBuffer[shift], _Digits);
+   ichiKijunSen = NormalizeDouble(ichiKijunSenBuffer[shift], _Digits);
+   ichiSpanA = NormalizeDouble(ichiSenkouSpanABuffer[shift], _Digits);
+   ichiSpanB = NormalizeDouble(ichiSenkouSpanBBuffer[shift], _Digits);
+   ichiChinkouSpan=NormalizeDouble(ichiChinkouSpanBuffer[26], _Digits);
 
-   double sar1200 = NormalizeDouble(sar1200Buffer[shift],_Digits);
-   double adxValue168 = NormalizeDouble(adxMain168Buffer[shift],_Digits);
-   double adxPlus168 = NormalizeDouble(adxPlus168Buffer[shift],_Digits);
-   double adxMinus168 = NormalizeDouble(adxMinus168Buffer[shift],_Digits);
-   double rsi84 = NormalizeDouble(rsi84Buffer[shift],_Digits);
+   double sar1200 = NormalizeDouble(sar1200Buffer[shift], _Digits);
+   double adxValue168 = NormalizeDouble(adxMain168Buffer[shift], _Digits);
+   double adxPlus168 = NormalizeDouble(adxPlus168Buffer[shift], _Digits);
+   double adxMinus168 = NormalizeDouble(adxMinus168Buffer[shift], _Digits);
+   double rsi84 = NormalizeDouble(rsi84Buffer[shift], _Digits);
    double bollingerUpper240 = NormalizeDouble(bandsUpper240Buffer[shift], _Digits);
    double bollingerLower240 = NormalizeDouble(bandsLower240Buffer[shift], _Digits);
-   double momentum1200=NormalizeDouble(momentum1200Buffer[shift],_Digits);
+   double momentum1200=NormalizeDouble(momentum1200Buffer[shift], _Digits);
 
-   ichiTenkanSen6 = NormalizeDouble(ichiTenkanSen6Buffer[shift],_Digits);
-   ichiKijunSen6 = NormalizeDouble(ichiKijunSen6Buffer[shift],_Digits);
-   ichiSpanA6 = NormalizeDouble(ichiSenkouSpanA6Buffer[shift],_Digits);
-   ichiSpanB6 = NormalizeDouble(ichiSenkouSpanB6Buffer[shift],_Digits);
-   ichiChinkouSpan6 = NormalizeDouble(ichiChinkouSpan6Buffer[156],_Digits);
-
-   double low=NormalizeDouble(rates_array[shift].low,_Digits);
-   double high=NormalizeDouble(rates_array[shift].high,_Digits);
+   ichiTenkanSen6 = NormalizeDouble(ichiTenkanSen6Buffer[shift], _Digits);
+   ichiKijunSen6 = NormalizeDouble(ichiKijunSen6Buffer[shift], _Digits);
+   ichiSpanA6 = NormalizeDouble(ichiSenkouSpanA6Buffer[shift], _Digits);
+   ichiSpanB6 = NormalizeDouble(ichiSenkouSpanB6Buffer[shift], _Digits);
+   ichiChinkouSpan6 = NormalizeDouble(ichiChinkouSpan6Buffer[156], _Digits);
 
    Difference *difference=new Difference;
-   difference.maDiff=NormalizeDouble(ma-last_tick.bid,_Digits);
-   difference.macdDiff=NormalizeDouble(macdV-macdS,_Digits);
-   difference.maCompareDiff=NormalizeDouble(maCompare-closeCompare,_Digits);
-   difference.sarDiff = NormalizeDouble(sar - last_tick.bid,_Digits);
-   difference.adxDiff = NormalizeDouble(adxValue * (adxPlus-adxMinus),_Digits);
-   difference.rsiDiff = NormalizeDouble(rsi,_Digits);
-   difference.bollingerDiff= NormalizeDouble(bollingerUpper-bollingerLower,_Digits);
-   difference.momentumDiff = NormalizeDouble(momentum,_Digits);
-   difference.ichiTrendDiff= NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid,_Digits);
-   difference.ichiSignalDiff=NormalizeDouble(ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen),_Digits);
-   difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.bid,_Digits);
-   difference.macd20xDiff=NormalizeDouble(macd20xV+macd20xS,_Digits);
-   difference.maCompare1200Diff=NormalizeDouble(maCompare1200-closeCompare,_Digits);
-   difference.sar1200Diff = NormalizeDouble(sar1200 - last_tick.bid,_Digits);
-   difference.adx168Diff = NormalizeDouble(adxValue168 * (adxPlus168-adxMinus168),_Digits);
-   difference.rsi84Diff = NormalizeDouble(rsi84,_Digits);
-   difference.bollinger240Diff= NormalizeDouble(bollingerUpper240-bollingerLower240,_Digits);
-   difference.momentum1200Diff = NormalizeDouble(momentum1200,_Digits);
-   difference.ichiTrend6Diff= NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.bid,_Digits);
-   difference.ichiSignal6Diff=NormalizeDouble(ichiChinkouSpan6 *(ichiTenkanSen6-ichiKijunSen6),_Digits);
+   difference.maDiff=NormalizeDouble(ma-last_tick.bid, digitsIndicators);
+   difference.macdDiff=NormalizeDouble(macdV-macdS, digitsIndicators);
+   difference.maCompareDiff=NormalizeDouble(maCompare-closeCompare, digitsIndicators);
+   difference.sarDiff = NormalizeDouble(sar - last_tick.bid, digitsIndicators);
+   difference.adxDiff = NormalizeDouble(adxValue * (adxPlus-adxMinus), digitsIndicators);
+   difference.rsiDiff = NormalizeDouble(rsi, digitsIndicators);
+   difference.bollingerDiff= NormalizeDouble(bollingerUpper-bollingerLower, digitsIndicators);
+   difference.momentumDiff = NormalizeDouble(momentum, digitsIndicators);
+   difference.ichiTrendDiff= NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid, digitsIndicators);
+   difference.ichiSignalDiff=NormalizeDouble(ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen), digitsIndicators);
+   difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.bid, digitsIndicators);
+   difference.macd20xDiff=NormalizeDouble(macd20xV+macd20xS, digitsIndicators);
+   difference.maCompare1200Diff=NormalizeDouble(maCompare1200-closeCompare, digitsIndicators);
+   difference.sar1200Diff = NormalizeDouble(sar1200 - last_tick.bid, digitsIndicators);
+   difference.adx168Diff = NormalizeDouble(adxValue168 * (adxPlus168-adxMinus168), digitsIndicators);
+   difference.rsi84Diff = NormalizeDouble(rsi84, digitsIndicators);
+   difference.bollinger240Diff= NormalizeDouble(bollingerUpper240-bollingerLower240, digitsIndicators);
+   difference.momentum1200Diff = NormalizeDouble(momentum1200, digitsIndicators);
+   difference.ichiTrend6Diff= NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.bid, digitsIndicators);
+   difference.ichiSignal6Diff=NormalizeDouble(ichiChinkouSpan6 *(ichiTenkanSen6-ichiKijunSen6), digitsIndicators);
    
    int openPositionByProcess=1;
    double minLot=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
@@ -472,12 +470,12 @@ void process()
       }
    	closingManager.closeByIndicator(trading, estrategiaOpenPosition, difference, activeTime, ORDER_TYPE_BUY);
    
-   	difference.maDiff=NormalizeDouble(ma-last_tick.ask,_Digits);
-   	difference.sarDiff=NormalizeDouble(sar-last_tick.ask,_Digits);
-   	difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.ask,_Digits);
-   	difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.ask,_Digits);
-   	difference.sar1200Diff=NormalizeDouble(sar1200-last_tick.ask,_Digits);
-   	difference.ichiTrend6Diff=NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.ask,_Digits);
+   	difference.maDiff=NormalizeDouble(ma-last_tick.ask,digitsIndicators);
+   	difference.sarDiff=NormalizeDouble(sar-last_tick.ask,digitsIndicators);
+   	difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.ask,digitsIndicators);
+   	difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.ask,digitsIndicators);
+   	difference.sar1200Diff=NormalizeDouble(sar1200-last_tick.ask,digitsIndicators);
+   	difference.ichiTrend6Diff=NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.ask,digitsIndicators);
 
    	if(print) {
          printManager.printCloseEvaluation(difference,estrategiaOpenPosition, ORDER_TYPE_SELL);
@@ -570,26 +568,26 @@ void process()
             continue;
            }
 
-         difference.maDiff=NormalizeDouble(ma-last_tick.ask,_Digits);
-         difference.macdDiff=NormalizeDouble(macdV-macdS,_Digits);
-         difference.maCompareDiff=NormalizeDouble(maCompare-closeCompare,_Digits);
-         difference.sarDiff = NormalizeDouble(sar - last_tick.ask,_Digits);
-         difference.adxDiff = NormalizeDouble(adxValue*(adxPlus-adxMinus),_Digits);
-         difference.rsiDiff = NormalizeDouble(rsi,_Digits);
-         difference.bollingerDiff= NormalizeDouble(bollingerUpper-bollingerLower,_Digits);
-         difference.momentumDiff = NormalizeDouble(momentum,_Digits);
-         difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.ask,_Digits);
-         difference.ichiSignalDiff=NormalizeDouble(ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen),_Digits);
-         difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.ask,_Digits);
-         difference.macd20xDiff=NormalizeDouble(macd20xV+macd20xS,_Digits);
-         difference.maCompare1200Diff=NormalizeDouble(maCompare1200-closeCompare,_Digits);
-         difference.sar1200Diff = NormalizeDouble(sar1200 - last_tick.ask,_Digits);
-         difference.adx168Diff = NormalizeDouble(adxValue168*(adxPlus168-adxMinus168),_Digits);
-         difference.rsi84Diff = NormalizeDouble(rsi84,_Digits);
-         difference.bollinger240Diff= NormalizeDouble(bollingerUpper240-bollingerLower240,_Digits);
-         difference.momentum1200Diff = NormalizeDouble(momentum1200,_Digits);
-         difference.ichiTrend6Diff=NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.ask,_Digits);
-         difference.ichiSignal6Diff=NormalizeDouble(ichiChinkouSpan6 *(ichiTenkanSen6-ichiKijunSen6),_Digits);
+         difference.maDiff=NormalizeDouble(ma-last_tick.ask,digitsIndicators);
+         difference.macdDiff=NormalizeDouble(macdV-macdS,digitsIndicators);
+         difference.maCompareDiff=NormalizeDouble(maCompare-closeCompare,digitsIndicators);
+         difference.sarDiff = NormalizeDouble(sar - last_tick.ask,digitsIndicators);
+         difference.adxDiff = NormalizeDouble(adxValue*(adxPlus-adxMinus),digitsIndicators);
+         difference.rsiDiff = NormalizeDouble(rsi,digitsIndicators);
+         difference.bollingerDiff= NormalizeDouble(bollingerUpper-bollingerLower,digitsIndicators);
+         difference.momentumDiff = NormalizeDouble(momentum,digitsIndicators);
+         difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.ask,digitsIndicators);
+         difference.ichiSignalDiff=NormalizeDouble(ichiChinkouSpan *(ichiTenkanSen-ichiKijunSen),digitsIndicators);
+         difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.ask,digitsIndicators);
+         difference.macd20xDiff=NormalizeDouble(macd20xV+macd20xS,digitsIndicators);
+         difference.maCompare1200Diff=NormalizeDouble(maCompare1200-closeCompare,digitsIndicators);
+         difference.sar1200Diff = NormalizeDouble(sar1200 - last_tick.ask,digitsIndicators);
+         difference.adx168Diff = NormalizeDouble(adxValue168*(adxPlus168-adxMinus168),digitsIndicators);
+         difference.rsi84Diff = NormalizeDouble(rsi84,digitsIndicators);
+         difference.bollinger240Diff= NormalizeDouble(bollingerUpper240-bollingerLower240,digitsIndicators);
+         difference.momentum1200Diff = NormalizeDouble(momentum1200,digitsIndicators);
+         difference.ichiTrend6Diff=NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.ask,digitsIndicators);
+         difference.ichiSignal6Diff=NormalizeDouble(ichiChinkouSpan6 *(ichiTenkanSen6-ichiKijunSen6),digitsIndicators);
          
          if(print)
            {
@@ -658,12 +656,12 @@ void process()
               }
            }
 
-         difference.maDiff=NormalizeDouble(ma-last_tick.bid,_Digits);
-         difference.sarDiff=NormalizeDouble(sar-last_tick.bid,_Digits);
-         difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid,_Digits);
-         difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.bid,_Digits);
-         difference.sar1200Diff=NormalizeDouble(sar1200-last_tick.bid,_Digits);
-         difference.ichiTrend6Diff=NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.bid,_Digits);         
+         difference.maDiff=NormalizeDouble(ma-last_tick.bid,digitsIndicators);
+         difference.sarDiff=NormalizeDouble(sar-last_tick.bid,digitsIndicators);
+         difference.ichiTrendDiff=NormalizeDouble((ichiSpanA-ichiSpanB)-last_tick.bid,digitsIndicators);
+         difference.ma1200Diff=NormalizeDouble(ma1200-last_tick.bid,digitsIndicators);
+         difference.sar1200Diff=NormalizeDouble(sar1200-last_tick.bid,digitsIndicators);
+         difference.ichiTrend6Diff=NormalizeDouble((ichiSpanA6-ichiSpanB6)-last_tick.bid,digitsIndicators);         
          if(print) {
             printManager.printOpenEvaluation(difference,currentEstrategia,ORDER_TYPE_SELL);
          }
@@ -692,7 +690,7 @@ void process()
                      double openPrice = last_tick.bid;
                      executed=trading.PositionOpen(_Symbol,ORDER_TYPE_SELL,lot,openPrice,openPrice+currentEstrategia.StopLoss*_Point,openPrice-currentEstrategia.TakeProfit*_Point,currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId);
                      if(executed)
-                       {                                              
+                       {
                        estrategiaOpenPosition = currentEstrategia;
                        estrategiaOpenPosition.LastTakeProfit = currentEstrategia.TakeProfit;
                        estrategiaOpenPosition.LastStopLoss = currentEstrategia.StopLoss;                       

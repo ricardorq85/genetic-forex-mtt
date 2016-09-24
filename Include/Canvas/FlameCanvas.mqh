@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                  FlameCanvas.mqh |
-//|                   Copyright 2009-2015, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2016, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
 #include "Canvas.mqh"
@@ -454,13 +454,12 @@ void CFlameCanvas::FlameCalculate(void)
   {
 //--- calculate new frame
    int c;
+   int idx;
 //--- draw body of flame to the right
    for(int x=0,x_tot=m_width-1;x<x_tot;x++)
      {
-      int idx;
       //--- separately for y==0
       c=m_flame[x]+m_flame[x+m_width];
-      idx++;
       c+=+m_flame[x]+m_flame[x+m_width];
       m_flame[x]=uchar(c/4);
       //---
@@ -480,13 +479,15 @@ void CFlameCanvas::FlameCalculate(void)
       m_flame[idx]=uchar(c/4);
      }
 //--- move flame to the resource buffer
-   int idx;
    for(int y=0;y<m_height;y++)
+     {
       for(int x=0;x<m_width;x++)
         {
          idx=y*m_width+x;
          m_pixels[idx]=m_palette[m_flame[idx]];
         }
+     }
+//---
   }
 //+------------------------------------------------------------------+
 //| Draws "cloud"                                                    |

@@ -36,6 +36,7 @@ public:
    string            TypeTimeDescription(void) const;
    long              Magic(void) const;
    long              PositionId(void) const;
+   long              PositionById(void) const;
    //--- fast access methods to the double order propertyes
    double            VolumeInitial(void) const;
    double            VolumeCurrent(void) const;
@@ -47,6 +48,7 @@ public:
    //--- fast access methods to the string order propertyes
    string            Symbol(void) const;
    string            Comment(void) const;
+   string            ExternalId(void) const;
    //--- access methods to the API MQL5 functions
    bool              InfoInteger(const ENUM_ORDER_PROPERTY_INTEGER prop_id,long &var) const;
    bool              InfoDouble(const ENUM_ORDER_PROPERTY_DOUBLE prop_id,double &var) const;
@@ -187,6 +189,13 @@ long CHistoryOrderInfo::PositionId(void) const
    return(HistoryOrderGetInteger(m_ticket,ORDER_POSITION_ID));
   }
 //+------------------------------------------------------------------+
+//| Get the property value "ORDER_POSITION_BY_ID"                    |
+//+------------------------------------------------------------------+
+long CHistoryOrderInfo::PositionById(void) const
+  {
+   return(HistoryOrderGetInteger(m_ticket,ORDER_POSITION_BY_ID));
+  }
+//+------------------------------------------------------------------+
 //| Get the property value "ORDER_VOLUME_INITIAL"                    |
 //+------------------------------------------------------------------+
 double CHistoryOrderInfo::VolumeInitial(void) const
@@ -250,6 +259,13 @@ string CHistoryOrderInfo::Comment(void) const
    return(HistoryOrderGetString(m_ticket,ORDER_COMMENT));
   }
 //+------------------------------------------------------------------+
+//| Get the property value "ORDER_EXTERNAL_ID"                       |
+//+------------------------------------------------------------------+
+string CHistoryOrderInfo::ExternalId(void) const
+  {
+   return(HistoryOrderGetString(m_ticket,ORDER_EXTERNAL_ID));
+  }
+//+------------------------------------------------------------------+
 //| Access functions OrderGetInteger(...)                            |
 //+------------------------------------------------------------------+
 bool CHistoryOrderInfo::InfoInteger(const ENUM_ORDER_PROPERTY_INTEGER prop_id,long &var) const
@@ -288,6 +304,7 @@ string CHistoryOrderInfo::FormatType(string &str,const uint type) const
       case ORDER_TYPE_SELL_STOP      : str="sell stop";       break;
       case ORDER_TYPE_BUY_STOP_LIMIT : str="buy stop limit";  break;
       case ORDER_TYPE_SELL_STOP_LIMIT: str="sell stop limit"; break;
+      case ORDER_TYPE_CLOSE_BY       : str="close by";        break;
 
       default:
          str="unknown order type "+(string)type;

@@ -13,9 +13,9 @@
 #property script_show_inputs
 
 input string  compare="EURUSD";
-input string  fechaInicio="2008.05.06 08:44";
-//input string  fechaInicio="2008.05.06 08:45";
-input string  fechaCorte="2015.02.02 02:42";
+input string  fechaInicio="2016.04.19 00:05";
+input string  fechaFin="2016.05.06 08:45";
+input string  fechaCorte="2016.02.02 02:42";
 //+------------------------------------------------------------------+
 //| Script program start function                                    |
 //+------------------------------------------------------------------+
@@ -242,6 +242,9 @@ void outHistory()
    for(int i=iCurrent-1; i>0; i--)
      {
       datetime date1=rates_array[i].time;
+      if((date1>StringToTime(fechaFin))) {
+         break;
+      }
       string strDate1=TimeToString(date1,TIME_DATE);
       StringReplace(strDate1,".","/");
       string strTime1=TimeToString(date1,TIME_MINUTES);

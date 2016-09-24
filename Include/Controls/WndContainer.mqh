@@ -23,8 +23,8 @@ public:
    virtual bool      OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam);
    virtual bool      OnMouseEvent(const int x,const int y,const int flags);
    //--- access the contents of container
-   int               ControlsTotal(void)               const { return(m_controls.Total());   }
-   CWnd*             Control(const int ind)            const { return(m_controls.At(ind));   }
+   int               ControlsTotal(void)               const { return(m_controls.Total()); }
+   CWnd*             Control(const int ind)            const { return(dynamic_cast<CWnd *>(m_controls.At(ind))); }
    virtual CWnd*     ControlFind(const long id);
    //--- for mouse cursor focus
    virtual bool      MouseFocusKill(const long id=-1);
