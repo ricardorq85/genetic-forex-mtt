@@ -1,36 +1,32 @@
 //+------------------------------------------------------------------+
-//|                                                    Estrategy.mqh |
-//|                                               ricardorq85        |
-//|                                                                  |
+//|                                                  ExampleTemp.mqh |
+//|                        Copyright 2014, MetaQuotes Software Corp. |
+//|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
-#property copyright "ricardorq85"
+#property copyright "Copyright 2014, MetaQuotes Software Corp."
+#property link      "http://www.mql5.com"
 #property version   "1.00"
-
-#include <Genetic\Indicador.mqh>
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-class Vigencia
+class CExampleTemp
   {
-public:
-   datetime          VigenciaLower;
-   datetime          VigenciaHigher;
-   int               cantidadVigencia;
-
-                     Vigencia();
-                    ~Vigencia();
 private:
+
+public:
+                     CExampleTemp();
+                    ~CExampleTemp();
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Vigencia::Vigencia()
+CExampleTemp::CExampleTemp()
   {
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Vigencia::~Vigencia()
+CExampleTemp::~CExampleTemp()
   {
   }
 //+------------------------------------------------------------------+

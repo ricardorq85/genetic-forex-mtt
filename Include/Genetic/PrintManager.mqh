@@ -1,50 +1,62 @@
 //+------------------------------------------------------------------+
 //|                                                 PrintManager.mqh |
-//|                        Copyright 2014, MetaQuotes Software Corp. |
-//|                                              http://www.mql5.com |
+//|                                               ricardorq85        |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2014, MetaQuotes Software Corp."
-#property link      "http://www.mql5.com"
-#property copyright "RROJASQ"
+#property copyright "ricardorq85"
 #property version   "1.00"
 
 #include <Genetic\Estrategy.mqh>
 #include <Genetic\Difference.mqh>
-
-class PrintManager {
-   public:
-      bool print;
-      
-      PrintManager(bool inPrint);
-      ~PrintManager();
-      void printOpenEvaluation(Difference *difference,Estrategy *currentEstrategia, ENUM_ORDER_TYPE tipoOperacion);
-      void printCloseEvaluation(Difference *difference,Estrategy *currentEstrategia, ENUM_ORDER_TYPE tipoOperacion);
-      void customPrint(string str);
-            
-      
-};
-
-PrintManager::PrintManager(bool inPrint) {
-   print = inPrint;
-}
-
-PrintManager::~PrintManager() {
-}
-
-void PrintManager::customPrint(string str) { 
-   if(print) {
-      Print(str);
-   }
-}
-
-void PrintManager::printOpenEvaluation(Difference *difference,Estrategy *currentEstrategia, ENUM_ORDER_TYPE tipoOperacion)
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+class PrintManager 
   {
-   customPrint("printOpenEvaluation" + tipoOperacion);
+public:
+   bool              print;
+
+                     PrintManager(bool inPrint);
+                    ~PrintManager();
+   void              printOpenEvaluation(Difference *difference,Estrategy *currentEstrategia,ENUM_ORDER_TYPE tipoOperacion);
+   void              printCloseEvaluation(Difference *difference,Estrategy *currentEstrategia,ENUM_ORDER_TYPE tipoOperacion);
+   void              customPrint(string str);
+
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+PrintManager::PrintManager(bool inPrint) 
+  {
+   print=inPrint;
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+PrintManager::~PrintManager() 
+  {
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void PrintManager::customPrint(string str) 
+  {
+   if(print) 
+     {
+      Print(str);
+     }
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void PrintManager::printOpenEvaluation(Difference *difference,Estrategy *currentEstrategia,ENUM_ORDER_TYPE tipoOperacion)
+  {
+   customPrint("printOpenEvaluation"+tipoOperacion);
    if(!(currentEstrategia.open==false))
      {
       customPrint("(currentEstrategia.open==false) FAILED");
      }
-   if(!(currentEstrategia.orderType==tipoOperacion)) {
+   if(!(currentEstrategia.orderType==tipoOperacion)) 
+     {
       customPrint("(currentEstrategia.orderType==)"+tipoOperacion+" FAILED");
      }
    if(!(difference.maDiff>=currentEstrategia.indicadorMa.openLower))
@@ -134,7 +146,7 @@ void PrintManager::printOpenEvaluation(Difference *difference,Estrategy *current
    if(!(difference.ma1200Diff<=currentEstrategia.indicadorMa1200.openHigher))
      {
       customPrint("(difference.ma1200Diff <= currentEstrategia.indicadorMa1200.openHigher) FAILED: difference.ma1200Diff="+DoubleToString(difference.ma1200Diff)+",currentEstrategia.indicadorMa1200.openHigher="+DoubleToString(currentEstrategia.indicadorMa1200.openHigher));
-     }     
+     }
    if(!(difference.macd20xDiff>=currentEstrategia.indicadorMacd20x.openLower))
      {
       customPrint("(difference.macd20xDiff >= currentEstrategia.indicadorMacd20x.openLower) FAILED");
@@ -206,19 +218,22 @@ void PrintManager::printOpenEvaluation(Difference *difference,Estrategy *current
    if(!(difference.ichiSignal6Diff<=currentEstrategia.indicadorIchiSignal6.openHigher))
      {
       customPrint("(difference.ichiSignal6Diff <= currentEstrategia.openIchiSignalHigher) FAILED: difference.ichiSignal6Diff="+DoubleToString(difference.ichiSignal6Diff)+",currentEstrategia.openIchiSignalHigher="+DoubleToString(currentEstrategia.indicadorIchiSignal6.openHigher));
-     }     
-     
-   customPrint("printOpenEvaluation END " + tipoOperacion);
-  }
+     }
 
-void PrintManager::printCloseEvaluation(Difference *difference,Estrategy *currentEstrategia, ENUM_ORDER_TYPE tipoOperacion)
+   customPrint("printOpenEvaluation END "+tipoOperacion);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void PrintManager::printCloseEvaluation(Difference *difference,Estrategy *currentEstrategia,ENUM_ORDER_TYPE tipoOperacion)
   {
-  customPrint("printCloseEvaluation" + tipoOperacion);
+   customPrint("printCloseEvaluation"+tipoOperacion);
    if(!(currentEstrategia.open==true))
      {
       customPrint("(currentEstrategia.open==true) FAILED");
-     }            
-   if(!(currentEstrategia.orderType==tipoOperacion)) {
+     }
+   if(!(currentEstrategia.orderType==tipoOperacion)) 
+     {
       customPrint("(currentEstrategia.orderType==)"+tipoOperacion+" FAILED");
      }
 
@@ -309,7 +324,7 @@ void PrintManager::printCloseEvaluation(Difference *difference,Estrategy *curren
    if(!(difference.ma1200Diff<=currentEstrategia.indicadorMa1200.closeHigher))
      {
       customPrint("(difference.ma1200Diff <= currentEstrategia.indicadorMa1200.closeHigher) FAILED: difference.ma1200Diff="+DoubleToString(difference.ma1200Diff)+",currentEstrategia.indicadorMa1200.closeHigher="+DoubleToString(currentEstrategia.indicadorMa1200.closeHigher));
-     }     
+     }
    if(!(difference.macd20xDiff>=currentEstrategia.indicadorMacd20x.closeLower))
      {
       customPrint("(difference.macd20xDiff >= currentEstrategia.indicadorMacd20x.closeLower) FAILED");
@@ -381,7 +396,8 @@ void PrintManager::printCloseEvaluation(Difference *difference,Estrategy *curren
    if(!(difference.ichiSignal6Diff<=currentEstrategia.indicadorIchiSignal6.closeHigher))
      {
       customPrint("(difference.ichiSignal6Diff <= currentEstrategia.closeIchiSignalHigher) FAILED: difference.ichiSignal6Diff="+DoubleToString(difference.ichiSignal6Diff)+",currentEstrategia.closeIchiSignalHigher="+DoubleToString(currentEstrategia.indicadorIchiSignal6.closeHigher));
-     }     
-     
-   customPrint("printCloseEvaluation END " + tipoOperacion);
+     }
+
+   customPrint("printCloseEvaluation END "+tipoOperacion);
   }
+//+------------------------------------------------------------------+

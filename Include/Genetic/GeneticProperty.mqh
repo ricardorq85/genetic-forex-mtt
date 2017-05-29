@@ -1,36 +1,46 @@
 //+------------------------------------------------------------------+
-//|                                                    Estrategy.mqh |
-//|                                               ricardorq85        |
-//|                                                                  |
+//|                                              GeneticProperty.mqh |
+//|                                                      ricardorq85 |
+//|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "ricardorq85"
+#property link      "https://www.mql5.com"
 #property version   "1.00"
 
-#include <Genetic\Indicador.mqh>
+#include <Genetic\StringUtil.mqh>
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-class Vigencia
+class GeneticProperty
   {
-public:
-   datetime          VigenciaLower;
-   datetime          VigenciaHigher;
-   int               cantidadVigencia;
-
-                     Vigencia();
-                    ~Vigencia();
 private:
+   StringUtil *stringUtil;
+public:
+                     GeneticProperty();
+                    ~GeneticProperty();                    
+void                 initProperty(string strEstrategia,int indexParam);
+
+string             fechaInicio, fechaFin;
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Vigencia::Vigencia()
+GeneticProperty::GeneticProperty()
   {
+   stringUtil = new StringUtil();
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Vigencia::~Vigencia()
+GeneticProperty::~GeneticProperty()
   {
   }
 //+------------------------------------------------------------------+
+void GeneticProperty::initProperty(string strEstrategia,int indexParam)
+  {   
+   StringToUpper(strEstrategia);
+   string v = stringUtil.getValue(strEstrategia,"FECHA_INICIO");
+   fechaInicio=v;
+   v = stringUtil.getValue(strEstrategia,"FECHA_FIN");
+   fechaFin=v;
+  }

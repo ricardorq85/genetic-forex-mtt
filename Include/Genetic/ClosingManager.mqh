@@ -1,93 +1,120 @@
 //+------------------------------------------------------------------+
 //|                                             GestionMonetaria.mqh |
-//|                        Copyright 2014, MetaQuotes Software Corp. |
-//|                                              http://www.mql5.com |
+//|                                               ricardorq85        |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2014, MetaQuotes Software Corp."
-#property link      "http://www.mql5.com"
+#property copyright "ricardor85"
 
 #include <Genetic\Estrategy.mqh>
 #include <Genetic\Vigencia.mqh>
 #include <Genetic\Difference.mqh>
 #include <Trade\Trade.mqh>
 #include <Genetic\GestionMonetaria.mqh>
+#include <Genetic\DateUtil.mqh>
 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 class ClosingManager
   {
 private:
-	void closeBuyByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, datetime activeTime); 
-	void closeSellByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, datetime activeTime);
-	
-	GestionMonetaria *gm;
-	
+   void              closeBuyByIndicator(CTrade *trading,Estrategy *currentEstrategia,Difference *difference,datetime activeTime);
+   void              closeSellByIndicator(CTrade *trading,Estrategy *currentEstrategia,Difference *difference,datetime activeTime);
+
+   GestionMonetaria *gm;
+   CDateUtil *dateUtil;
+
 public:
 
-   ClosingManager();
-  ~ClosingManager();
-  
-  void closeByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, 
-         datetime activeTime, ENUM_ORDER_TYPE orderType);  
-   void closeByCantidadVigencia(CTrade *trading, Estrategy *estrategiaOpenPosition, int cantidad, datetime activeTime);        
-   void close(CTrade *trading, Estrategy *estrategiaOpenPosition);
+                     ClosingManager();
+                    ~ClosingManager();
+
+   void              closeByIndicator(CTrade *trading,Estrategy *currentEstrategia,Difference *difference,
+                                      datetime activeTime,ENUM_ORDER_TYPE orderType);
+   void              closeByCantidadVigencia(CTrade *trading,Estrategy *estrategiaOpenPosition,int cantidad,datetime activeTime);
+   void              close(CTrade *trading,datetime activeTime,Estrategy *estrategiaOpenPosition);
   };
-  
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 ClosingManager::ClosingManager()
   {
-   gm = new GestionMonetaria();
+   gm=new GestionMonetaria();
+   dateUtil = new CDateUtil();
   }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 ClosingManager::~ClosingManager()
   {
-   gm = new GestionMonetaria();
-  } 
-  
-void ClosingManager::close(CTrade *trading, Estrategy *estrategiaOpenPosition) {
+   gm=new GestionMonetaria();
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void ClosingManager::close(CTrade *trading,datetime activeTime,Estrategy *estrategiaOpenPosition) 
+  {
    trading.PositionClose(_Symbol);
+   Print("(activeTime)="+(activeTime));
+   Print("(currentEstrategia.openDate)="+(estrategiaOpenPosition.openDate));
+   long diffMinutes = dateUtil.obtenerDiferenciaEnMinutos(estrategiaOpenPosition.openDate, activeTime);
+   Print("(activeTime-currentEstrategia.openDate)="+diffMinutes);
+   if (diffMinutes < 5) {
+      estrategiaOpenPosition.active=false;
+   }
    estrategiaOpenPosition.openDate=NULL;
-   estrategiaOpenPosition.open = false;
-}
-  
-void ClosingManager::closeByCantidadVigencia(CTrade *trading, Estrategy *estrategiaOpenPosition, int cantidad, datetime activeTime) {   
-   if(PositionSelect(_Symbol)) {
-      bool closed = false;
-      if (estrategiaOpenPosition.orderType==ORDER_TYPE_SELL) {
-         double loteActual = PositionGetDouble(POSITION_VOLUME);
-         double loteCerrado = (estrategiaOpenPosition.Lote * cantidad) / gm.getLotDivide();
-         if ((loteCerrado > 0) && (loteCerrado < loteActual)) {
-            trading.Buy(loteActual-loteCerrado, _Symbol); 
-         } else if ((loteCerrado == 0) || (loteCerrado == loteActual)) {
+   estrategiaOpenPosition.open=false;
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void ClosingManager::closeByCantidadVigencia(CTrade *trading,Estrategy *estrategiaOpenPosition,int cantidad,datetime activeTime) 
+  {
+   if(PositionSelect(_Symbol)) 
+     {
+      bool closed=false;
+      if(estrategiaOpenPosition.orderType==ORDER_TYPE_SELL) 
+        {
+         double loteActual=PositionGetDouble(POSITION_VOLUME);
+         double loteCerrado=(estrategiaOpenPosition.Lote*cantidad)/gm.getLotDivide();
+         if((loteCerrado>0) && (loteCerrado<loteActual)) 
+           {
+            trading.Buy(loteActual-loteCerrado,_Symbol);
+              } else if((loteCerrado==0) || (loteCerrado==loteActual)) {
             trading.PositionClose(_Symbol);
-            closed = true;
-         }
-      }
-      if (closed) {
+            closed=true;
+           }
+        }
+      if(closed) 
+        {
          estrategiaOpenPosition.openDate=NULL;
-         estrategiaOpenPosition.open = false;
-      }
-   }   
-}  
-
-void ClosingManager::closeByIndicator(CTrade *trading, Estrategy *currentEstrategia, 
-Difference *difference, datetime activeTime, ENUM_ORDER_TYPE tipoOperacion) {
+         estrategiaOpenPosition.open=false;
+        }
+     }
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void ClosingManager::closeByIndicator(CTrade *trading,Estrategy *currentEstrategia,
+                                      Difference *difference,datetime activeTime,ENUM_ORDER_TYPE tipoOperacion) 
+  {
    if((currentEstrategia.open==true)
       && (currentEstrategia.orderType==tipoOperacion)
-		&& (currentEstrategia.closeIndicator==true)
-		&& (currentEstrategia.openDate!=activeTime))
-   {
+      && (currentEstrategia.closeIndicator==true)
+      && (currentEstrategia.openDate!=activeTime))
+     {
       if(currentEstrategia.debeCerrarXIndicador(difference))
-      {
-      bool abcBol = (currentEstrategia.indicadorBollinger.close(difference.bollingerDiff));
+        {
          if(PositionSelect(_Symbol))
            {
             string comment=PositionGetString(POSITION_COMMENT);
             if(comment==currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)
               {
-               close(trading, currentEstrategia);
+               close(trading,activeTime,currentEstrategia);
               }
            }
-      }                      
-   }
-}
+        }
+     }
+  }
 
 /*
 void ClosingManager::closeBuyByIndicator(CTrade *trading, Estrategy *currentEstrategia, Difference *difference, datetime activeTime) {
@@ -142,3 +169,4 @@ void ClosingManager::closeBuyByIndicator(CTrade *trading, Estrategy *currentEstr
 
 }
 */
+//+------------------------------------------------------------------+
