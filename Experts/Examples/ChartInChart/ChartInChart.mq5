@@ -1,9 +1,9 @@
 //+------------------------------------------------------------------+
 //|                                                 ChartInChart.mq5 |
-//|                   Copyright 2009-2013, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2017, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
-#property copyright "2009-2013, MetaQuotes Software Corp."
+#property copyright "2009-2017, MetaQuotes Software Corp."
 #property link      "http://www.mql5.com"
 //--- inputs
 input color TextColor=White;

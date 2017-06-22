@@ -58,11 +58,11 @@ bool Tendencia::isValidForOpen(datetime activeTime) {
       double pipsTP = MathAbs(precioCalculado - tp)/_Point;
       double pipsSL = MathAbs(precioCalculado - sl)/_Point;
       if ((pipsTP < 200) || (pipsSL < 200)) {
-         Print("TakeProfit o StopLoss no valido");
+         Print(id + " TakeProfit o StopLoss no valido");
          return false;
       }
       if (MathAbs(pendiente) < 0.001) {
-         Print("Pendiente no valida");
+         Print(id + " Pendiente no valida");
          return false;
       }
       

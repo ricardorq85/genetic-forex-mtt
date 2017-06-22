@@ -70,6 +70,7 @@ void process() {
             Print("Deleting Error code "+IntegerToString(GetLastError()));
          }
          Print("End");
-      }      
+      }
+      ArrayFree(properties);
   }
 //+------------------------------------------------------------------+

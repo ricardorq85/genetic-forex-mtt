@@ -13,10 +13,11 @@ class ExportHistory
   {
 private:
    string  compare;
-   string  fechaInicio;
-   string  fechaFin;
+   datetime  fechaInicio;
+   datetime  fechaFin;
    datetime  fechaCorte;
    datetime fechaFinProceso;
+   datetime fechaInicioIndicadores;
 
    double maBuffer[];
    double maCompareBuffer[];
@@ -86,16 +87,20 @@ public:
 ExportHistory::ExportHistory(string paramCompare, string paramFechaInicio, string paramFechaFin)
   {
    compare=paramCompare;
-   fechaInicio=paramFechaInicio;
-   fechaFin=paramFechaFin;
+   fechaInicio=StringToTime(paramFechaInicio);
+   fechaFin=StringToTime(paramFechaFin);
    fechaCorte=TimeCurrent();
    datetime currentTime = TimeCurrent();
    fechaFinProceso = NULL;
-   if ((fechaFin == NULL) || (fechaFin == "") || (StringToTime(fechaFin) > currentTime)) {
+   if ((fechaFin == NULL) || (paramFechaFin == "") || (fechaFin > currentTime)) {
       fechaFinProceso = currentTime;
    } else {
-      fechaFinProceso = StringToTime(fechaFin);
-   }   
+      fechaFinProceso = fechaFin;
+   }
+   fechaInicioIndicadores = fechaInicio;
+   //int secondsPrevious = (1 * 30 * 24 * 60 * 60);
+   //fechaInicioIndicadores = fechaInicio - (secondsPrevious);     
+   //Print("fechaInicioIndicadores: " + TimeToString(fechaInicioIndicadores));
   }
   
 //Destructor
@@ -133,54 +138,54 @@ void ExportHistory::startHistory()
 
    maHandle=iMA(_Symbol,_Period,60,0,MODE_SMA,PRICE_WEIGHTED);
    SetIndexBuffer(0,maBuffer,INDICATOR_DATA);
-   CopyBuffer(maHandle,0,StringToTime(fechaInicio), fechaFinProceso,maBuffer);
+   CopyBuffer(maHandle,0,fechaInicioIndicadores,fechaFinProceso,maBuffer);
    ArraySetAsSeries(maBuffer,true);
 
    maCompareHandle=iMA(compare,_Period,60,0,MODE_SMA,PRICE_WEIGHTED);
    SetIndexBuffer(0,maCompareBuffer,INDICATOR_DATA);
-   CopyBuffer(maCompareHandle,0,StringToTime(fechaInicio), fechaFinProceso,maCompareBuffer);
+   CopyBuffer(maCompareHandle,0,fechaInicioIndicadores, fechaFinProceso,maCompareBuffer);
    ArraySetAsSeries(maCompareBuffer,true);
 
    macdHandle=iMACD(_Symbol,_Period,12,26,9,PRICE_WEIGHTED);
    SetIndexBuffer(0,macdMainBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,macdSignalBuffer,INDICATOR_DATA);
-   CopyBuffer(macdHandle,0,StringToTime(fechaInicio), fechaFinProceso,macdMainBuffer);
-   CopyBuffer(macdHandle,1,StringToTime(fechaInicio), fechaFinProceso,macdSignalBuffer);
+   CopyBuffer(macdHandle,0,fechaInicioIndicadores, fechaFinProceso,macdMainBuffer);
+   CopyBuffer(macdHandle,1,fechaInicioIndicadores, fechaFinProceso,macdSignalBuffer);
    ArraySetAsSeries(macdMainBuffer,true);
    ArraySetAsSeries(macdSignalBuffer,true);
 
    sarHandle=iSAR(_Symbol,_Period,0.02,0.2);
    SetIndexBuffer(0,sarBuffer,INDICATOR_DATA);
-   CopyBuffer(sarHandle,0,StringToTime(fechaInicio), fechaFinProceso,sarBuffer);
+   CopyBuffer(sarHandle,0,fechaInicioIndicadores, fechaFinProceso,sarBuffer);
    ArraySetAsSeries(sarBuffer,true);
 
    adxHandle=iADX(_Symbol,_Period,14);
    SetIndexBuffer(0,adxMainBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,adxPlusBuffer,INDICATOR_DATA);
    SetIndexBuffer(2,adxMinusBuffer,INDICATOR_DATA);
-   CopyBuffer(adxHandle,0,StringToTime(fechaInicio), fechaFinProceso,adxMainBuffer);
-   CopyBuffer(adxHandle,1,StringToTime(fechaInicio), fechaFinProceso,adxPlusBuffer);
-   CopyBuffer(adxHandle,2,StringToTime(fechaInicio), fechaFinProceso,adxMinusBuffer);
+   CopyBuffer(adxHandle,0,fechaInicioIndicadores, fechaFinProceso,adxMainBuffer);
+   CopyBuffer(adxHandle,1,fechaInicioIndicadores, fechaFinProceso,adxPlusBuffer);
+   CopyBuffer(adxHandle,2,fechaInicioIndicadores, fechaFinProceso,adxMinusBuffer);
    ArraySetAsSeries(adxMainBuffer,true);
    ArraySetAsSeries(adxPlusBuffer,true);
    ArraySetAsSeries(adxMinusBuffer,true);
 
    rsiHandle=iRSI(_Symbol,_Period,28,PRICE_WEIGHTED);
    SetIndexBuffer(0,rsiBuffer,INDICATOR_DATA);
-   CopyBuffer(rsiHandle,0,StringToTime(fechaInicio), fechaFinProceso,rsiBuffer);
+   CopyBuffer(rsiHandle,0,fechaInicioIndicadores, fechaFinProceso,rsiBuffer);
    ArraySetAsSeries(rsiBuffer,true);
  
    bandsHandle=iBands(_Symbol,_Period,20,2,2,PRICE_WEIGHTED);
    SetIndexBuffer(1,bandsUpperBuffer,INDICATOR_DATA);
    SetIndexBuffer(2,bandsLowerBuffer,INDICATOR_DATA);
-   CopyBuffer(bandsHandle,1,StringToTime(fechaInicio), fechaFinProceso,bandsUpperBuffer);
-   CopyBuffer(bandsHandle,2,StringToTime(fechaInicio), fechaFinProceso,bandsLowerBuffer);
+   CopyBuffer(bandsHandle,1,fechaInicioIndicadores, fechaFinProceso,bandsUpperBuffer);
+   CopyBuffer(bandsHandle,2,fechaInicioIndicadores, fechaFinProceso,bandsLowerBuffer);
    ArraySetAsSeries(bandsUpperBuffer,true);
    ArraySetAsSeries(bandsLowerBuffer,true);
 
    momentumHandle=iMomentum(_Symbol,_Period,28,PRICE_WEIGHTED);
    SetIndexBuffer(0,momentumBuffer,INDICATOR_DATA);
-   CopyBuffer(momentumHandle,0,StringToTime(fechaInicio), fechaFinProceso,momentumBuffer);
+   CopyBuffer(momentumHandle,0,fechaInicioIndicadores, fechaFinProceso,momentumBuffer);
    ArraySetAsSeries(momentumBuffer,true);
    
    ichiHandle=iIchimoku(_Symbol,_Period,9,26,52);
@@ -189,11 +194,11 @@ void ExportHistory::startHistory()
    SetIndexBuffer(2,ichiSenkouSpanABuffer,INDICATOR_DATA);
    SetIndexBuffer(3,ichiSenkouSpanBBuffer,INDICATOR_DATA);
    SetIndexBuffer(4,ichiChinkouSpanBuffer,INDICATOR_DATA);
-   CopyBuffer(ichiHandle,0,StringToTime(fechaInicio), fechaFinProceso,ichiTenkanSenBuffer);
-   CopyBuffer(ichiHandle,1,StringToTime(fechaInicio), fechaFinProceso,ichiKijunSenBuffer);
-   CopyBuffer(ichiHandle,2,StringToTime(fechaInicio), fechaFinProceso,ichiSenkouSpanABuffer);
-   CopyBuffer(ichiHandle,3,StringToTime(fechaInicio), fechaFinProceso,ichiSenkouSpanBBuffer);
-   CopyBuffer(ichiHandle,4,StringToTime(fechaInicio), fechaFinProceso,ichiChinkouSpanBuffer);
+   CopyBuffer(ichiHandle,0,fechaInicioIndicadores, fechaFinProceso,ichiTenkanSenBuffer);
+   CopyBuffer(ichiHandle,1,fechaInicioIndicadores, fechaFinProceso,ichiKijunSenBuffer);
+   CopyBuffer(ichiHandle,2,fechaInicioIndicadores, fechaFinProceso,ichiSenkouSpanABuffer);
+   CopyBuffer(ichiHandle,3,fechaInicioIndicadores, fechaFinProceso,ichiSenkouSpanBBuffer);
+   CopyBuffer(ichiHandle,4,fechaInicioIndicadores, fechaFinProceso,ichiChinkouSpanBuffer);
    ArraySetAsSeries(ichiTenkanSenBuffer,true);
    ArraySetAsSeries(ichiKijunSenBuffer,true);
    ArraySetAsSeries(ichiSenkouSpanABuffer,true);
@@ -202,56 +207,54 @@ void ExportHistory::startHistory()
 
    ma1200Handle=iMA(_Symbol,_Period,1200,0,MODE_SMA,PRICE_WEIGHTED);
    SetIndexBuffer(0,ma1200Buffer,INDICATOR_DATA);
-   CopyBuffer(ma1200Handle,0,StringToTime(fechaInicio), fechaFinProceso,ma1200Buffer);
+   CopyBuffer(ma1200Handle,0,fechaInicioIndicadores, fechaFinProceso,ma1200Buffer);
    ArraySetAsSeries(ma1200Buffer,true);
 
    macd20xHandle=iMACD(_Symbol,_Period,240,529,180,PRICE_WEIGHTED);
    SetIndexBuffer(0,macd20xMainBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,macd20xSignalBuffer,INDICATOR_DATA);
-   CopyBuffer(macd20xHandle,0,StringToTime(fechaInicio), fechaFinProceso,macd20xMainBuffer);
-   CopyBuffer(macd20xHandle,1,StringToTime(fechaInicio), fechaFinProceso,macd20xSignalBuffer);
+   CopyBuffer(macd20xHandle,0,fechaInicioIndicadores, fechaFinProceso,macd20xMainBuffer);
+   CopyBuffer(macd20xHandle,1,fechaInicioIndicadores, fechaFinProceso,macd20xSignalBuffer);
    ArraySetAsSeries(macd20xMainBuffer,true);
    ArraySetAsSeries(macd20xSignalBuffer,true);
 
    maCompare1200Handle=iMA(compare,_Period,1200,0,MODE_SMA,PRICE_WEIGHTED);
    SetIndexBuffer(0,maCompare1200Buffer,INDICATOR_DATA);
-   CopyBuffer(maCompare1200Handle,0,StringToTime(fechaInicio), fechaFinProceso,maCompare1200Buffer);
+   CopyBuffer(maCompare1200Handle,0,fechaInicioIndicadores, fechaFinProceso,maCompare1200Buffer);
    ArraySetAsSeries(maCompare1200Buffer,true);
 
-   //---------------
-   
    sar1200Handle=iSAR(_Symbol,_Period,24,240);
    SetIndexBuffer(0,sar1200Buffer,INDICATOR_DATA);
-   CopyBuffer(sar1200Handle,0,StringToTime(fechaInicio), fechaFinProceso,sar1200Buffer);
+   CopyBuffer(sar1200Handle,0,fechaInicioIndicadores, fechaFinProceso,sar1200Buffer);
    ArraySetAsSeries(sar1200Buffer,true);
 
    adx168Handle=iADX(_Symbol,_Period,168);
    SetIndexBuffer(0,adxMain168Buffer,INDICATOR_DATA);
    SetIndexBuffer(1,adxPlus168Buffer,INDICATOR_DATA);
    SetIndexBuffer(2,adxMinus168Buffer,INDICATOR_DATA);
-   CopyBuffer(adx168Handle,0,StringToTime(fechaInicio), fechaFinProceso,adxMain168Buffer);
-   CopyBuffer(adx168Handle,1,StringToTime(fechaInicio), fechaFinProceso,adxPlus168Buffer);
-   CopyBuffer(adx168Handle,2,StringToTime(fechaInicio), fechaFinProceso,adxMinus168Buffer);
+   CopyBuffer(adx168Handle,0,fechaInicioIndicadores, fechaFinProceso,adxMain168Buffer);
+   CopyBuffer(adx168Handle,1,fechaInicioIndicadores, fechaFinProceso,adxPlus168Buffer);
+   CopyBuffer(adx168Handle,2,fechaInicioIndicadores, fechaFinProceso,adxMinus168Buffer);
    ArraySetAsSeries(adxMain168Buffer,true);
    ArraySetAsSeries(adxPlus168Buffer,true);
    ArraySetAsSeries(adxMinus168Buffer,true);
 
    rsi84Handle=iRSI(_Symbol,_Period,84,PRICE_WEIGHTED);
    SetIndexBuffer(0,rsi84Buffer,INDICATOR_DATA);
-   CopyBuffer(rsi84Handle,0,StringToTime(fechaInicio), fechaFinProceso,rsi84Buffer);
+   CopyBuffer(rsi84Handle,0,fechaInicioIndicadores, fechaFinProceso,rsi84Buffer);
    ArraySetAsSeries(rsi84Buffer,true);
 
    bands240Handle=iBands(_Symbol,_Period,240,24,24,PRICE_WEIGHTED);
    SetIndexBuffer(1,bandsUpper240Buffer,INDICATOR_DATA);
    SetIndexBuffer(2,bandsLower240Buffer,INDICATOR_DATA);
-   CopyBuffer(bands240Handle,1,StringToTime(fechaInicio), fechaFinProceso,bandsUpper240Buffer);
-   CopyBuffer(bands240Handle,2,StringToTime(fechaInicio), fechaFinProceso,bandsLower240Buffer);
+   CopyBuffer(bands240Handle,1,fechaInicioIndicadores, fechaFinProceso,bandsUpper240Buffer);
+   CopyBuffer(bands240Handle,2,fechaInicioIndicadores, fechaFinProceso,bandsLower240Buffer);
    ArraySetAsSeries(bandsUpper240Buffer,true);
    ArraySetAsSeries(bandsLower240Buffer,true);
 
    momentum1200Handle=iMomentum(_Symbol,_Period,16800,PRICE_WEIGHTED);
    SetIndexBuffer(0,momentum1200Buffer,INDICATOR_DATA);
-   CopyBuffer(momentum1200Handle,0,StringToTime(fechaInicio), fechaFinProceso,momentum1200Buffer);
+   CopyBuffer(momentum1200Handle,0,fechaInicioIndicadores, fechaFinProceso,momentum1200Buffer);
    ArraySetAsSeries(momentum1200Buffer,true);
    
    ichi6Handle=iIchimoku(_Symbol,_Period,54,156,312);
@@ -260,11 +263,11 @@ void ExportHistory::startHistory()
    SetIndexBuffer(2,ichiSenkouSpanA6Buffer,INDICATOR_DATA);
    SetIndexBuffer(3,ichiSenkouSpanB6Buffer,INDICATOR_DATA);
    SetIndexBuffer(4,ichiChinkouSpan6Buffer,INDICATOR_DATA);
-   CopyBuffer(ichi6Handle,0,StringToTime(fechaInicio), fechaFinProceso,ichiTenkanSen6Buffer);
-   CopyBuffer(ichi6Handle,1,StringToTime(fechaInicio), fechaFinProceso,ichiKijunSen6Buffer);
-   CopyBuffer(ichi6Handle,2,StringToTime(fechaInicio), fechaFinProceso,ichiSenkouSpanA6Buffer);
-   CopyBuffer(ichi6Handle,3,StringToTime(fechaInicio), fechaFinProceso,ichiSenkouSpanB6Buffer);
-   CopyBuffer(ichi6Handle,4,StringToTime(fechaInicio), fechaFinProceso,ichiChinkouSpan6Buffer);
+   CopyBuffer(ichi6Handle,0,fechaInicioIndicadores, fechaFinProceso,ichiTenkanSen6Buffer);
+   CopyBuffer(ichi6Handle,1,fechaInicioIndicadores, fechaFinProceso,ichiKijunSen6Buffer);
+   CopyBuffer(ichi6Handle,2,fechaInicioIndicadores, fechaFinProceso,ichiSenkouSpanA6Buffer);
+   CopyBuffer(ichi6Handle,3,fechaInicioIndicadores, fechaFinProceso,ichiSenkouSpanB6Buffer);
+   CopyBuffer(ichi6Handle,4,fechaInicioIndicadores, fechaFinProceso,ichiChinkouSpan6Buffer);
    ArraySetAsSeries(ichiTenkanSen6Buffer,true);
    ArraySetAsSeries(ichiKijunSen6Buffer,true);
    ArraySetAsSeries(ichiSenkouSpanA6Buffer,true);
@@ -288,14 +291,9 @@ void ExportHistory::outHistory()
    ArraySetAsSeries(spread_int,true);
 
    Comment("Copying ... Please wait... ");
-   int MaxBar=Bars(_Symbol,PERIOD_CURRENT, StringToTime(fechaInicio), fechaFinProceso);
-   //int iCurrent=CopyRates(_Symbol,_Period,0,MaxBar,rates_array);
-   int iCurrent=CopyRates(_Symbol,_Period,StringToTime(fechaInicio),fechaFinProceso,rates_array);
-   int MaxBarCompare=Bars(compare,PERIOD_CURRENT, StringToTime(fechaInicio), fechaFinProceso);
-   //int iCurrentCompare=CopyRates(compare,_Period,0,MaxBarCompare,rates_array_compare);
-   int iCurrentCompare=CopyRates(compare,_Period,StringToTime(fechaInicio),fechaFinProceso,rates_array_compare);
-   //int spreads=CopySpread(_Symbol,_Period,0,MaxBar,spread_int);
-   int spreads=CopySpread(_Symbol,_Period,StringToTime(fechaInicio),fechaFinProceso,spread_int);
+   int iCurrent=CopyRates(_Symbol,_Period,fechaInicioIndicadores,fechaFinProceso,rates_array);
+   int iCurrentCompare=CopyRates(compare,_Period,fechaInicioIndicadores,fechaFinProceso,rates_array_compare);
+   int spreads=CopySpread(_Symbol,_Period,fechaInicioIndicadores,fechaFinProceso,spread_int);
    Comment("Copied "+IntegerToString(iCurrent)+"... Please wait... ");
    Print("Copied "+IntegerToString(iCurrent)+"... Please wait... ");
    
@@ -307,7 +305,7 @@ void ExportHistory::outHistory()
    StringReplace(id,".","");
    StringReplace(id,":","");
    int iCounter=iCurrent-1;
-   int j=MaxBarCompare-1;
+   int j=iCurrentCompare-1;
    for(int i=iCurrent-1; i>=0; i--)
      {
       datetime date1=rates_array[i].time;
@@ -317,9 +315,7 @@ void ExportHistory::outHistory()
       string strDate1=TimeToString(date1,TIME_DATE);
       StringReplace(strDate1,".","/");
       string strTime1=TimeToString(date1,TIME_MINUTES);
-      //Print("Date1=" + date1);
-      //Print("fechaInicio=" + fechaInicio);
-      if((date1>=StringToTime(fechaInicio)))
+      if((date1>=fechaInicio))
         {
          if((iCounter==iCurrent-1)
             || ((((iCurrent-iCounter)%fileSize1)==0) && (date1<(fechaCorte)))

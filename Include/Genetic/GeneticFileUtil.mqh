@@ -23,10 +23,11 @@ class GeneticFileUtil {
 GeneticFileUtil::GeneticFileUtil() {}
 GeneticFileUtil::~GeneticFileUtil() {}
 
-void GeneticFileUtil::deleteFile(string fileName) {   
+void GeneticFileUtil::deleteFile(string fileName) { 
+   ResetLastError();  
    bool deleteStatus = FileDelete(fileName, FILE_COMMON);
    if (!deleteStatus) {
-      Print("Error code "+IntegerToString(GetLastError()));
+      Print("Deleting Error code "+IntegerToString(GetLastError()));
    }
 }
 

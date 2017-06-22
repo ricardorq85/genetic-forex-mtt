@@ -1,9 +1,9 @@
 //+------------------------------------------------------------------+
 //|                                                  MACD Sample.mq5 |
-//|                   Copyright 2009-2016, MetaQuotes Software Corp. |
+//|                   Copyright 2009-2017, MetaQuotes Software Corp. |
 //|                                              http://www.mql5.com |
 //+------------------------------------------------------------------+
-#property copyright   "Copyright 2009-2016, MetaQuotes Software Corp."
+#property copyright   "Copyright 2009-2017, MetaQuotes Software Corp."
 #property link        "http://www.mql5.com"
 #property version     "5.50"
 #property description "It is important to make sure that the expert works with a normal"
