@@ -13,6 +13,7 @@ private:
    StringUtil *stringUtil;
 
 public:
+   string            periodo;
    datetime          fechaTendencia;
    datetime          VigenciaLower;
    datetime          VigenciaHigher;   
@@ -26,7 +27,7 @@ public:
    bool              open;
    string            id;
    string            name;
-   string            tipoOperacion;
+   int            tipoOperacion;
 
                      Tendencia();
                     ~Tendencia();
@@ -61,9 +62,11 @@ bool Tendencia::isValidForOpen(datetime activeTime) {
          Print(id + " TakeProfit o StopLoss no valido");
          return false;
       }
-      if (MathAbs(pendiente) < 0.001) {
-         Print(id + " Pendiente no valida");
-         return false;
+      if (periodo != "EXTREMO") {
+         if (MathAbs(pendiente) < 0.001) {
+            Print(id + " Pendiente no valida");
+            return false;
+         }
       }
       
       return true;
@@ -98,12 +101,13 @@ void Tendencia::initTendencia(string strEstrategia,int indexParam)
     } else if(v=="SELL") {
       tipoOperacion=ORDER_TYPE_SELL;
     }
+   periodo = stringUtil.getValue(strEstrategia,"PERIOD");
    name = stringUtil.getValue(strEstrategia,"NAME");
-   id = index + "-" + name;
+   id = IntegerToString(index) + "-" + name + "-" + periodo;
    
    v = stringUtil.getValue(strEstrategia,"VIGENCIALOWER");
    VigenciaLower = StringToTime(v);
    v = stringUtil.getValue(strEstrategia,"VIGENCIAHIGHER");
    VigenciaHigher = StringToTime(v);
-   
+      
   }
