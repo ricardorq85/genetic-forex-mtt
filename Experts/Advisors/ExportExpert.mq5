@@ -49,7 +49,7 @@ void OnTimer()
   }
 
 void process() {
-      string compare = "USDCAD";
+      string compare = "EURUSD";
       string fileName = "export\\Export.properties";      
       GeneticFileUtil *fileUtil = new GeneticFileUtil();
       fileUtil.loadProperties(fileName, properties);
