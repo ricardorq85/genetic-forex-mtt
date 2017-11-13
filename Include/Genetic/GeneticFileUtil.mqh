@@ -43,16 +43,18 @@ void GeneticFileUtil::loadAllTendencias(string directorySourceName, Tendencia& t
 	 string targetFileName = loadFileName;
 	 StringReplace(targetFileName, "live", "processed");
 	 FileMove(loadFileName, FILE_COMMON, targetFileName, FILE_COMMON);
-	 Print("Moving Error code "+IntegerToString(GetLastError()));
+	 if (GetLastError() != 0) {
+	   Print("Moving Error code: "+ loadFileName + ":" +IntegerToString(GetLastError()));
+	 }
 	} while(FileFindNext(search_handle,fileName));
 	FileFindClose(search_handle); 
 }
 
 void GeneticFileUtil::loadTendencias(string fileName, Tendencia& tendencias[])
   {
-   Print("TERMINAL_PATH = ",TerminalInfoString(TERMINAL_PATH));
-   Print("TERMINAL_DATA_PATH = ",TerminalInfoString(TERMINAL_DATA_PATH));
-   Print("TERMINAL_COMMONDATA_PATH = ",TerminalInfoString(TERMINAL_COMMONDATA_PATH));
+   //Print("TERMINAL_PATH = ",TerminalInfoString(TERMINAL_PATH));
+   //Print("TERMINAL_DATA_PATH = ",TerminalInfoString(TERMINAL_DATA_PATH));
+   //Print("TERMINAL_COMMONDATA_PATH = ",TerminalInfoString(TERMINAL_COMMONDATA_PATH));
    ResetLastError();
    string fullFileName = fileName;
    datetime modifyTime = FileGetInteger(fullFileName, FILE_MODIFY_DATE,true);
@@ -79,7 +81,7 @@ void GeneticFileUtil::loadTendencias(string fileName, Tendencia& tendencias[])
         }else{
 
       Print("Failed to open the file by the absolute path ");
-      Print("Error code "+IntegerToString(GetLastError()));
+      Print("Error code:" +fullFileName + ":" + IntegerToString(GetLastError()));
      }
   }
   

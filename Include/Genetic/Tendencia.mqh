@@ -58,7 +58,7 @@ bool Tendencia::isValidForOpen(datetime activeTime) {
       }
       double pipsTP = MathAbs(precioCalculado - tp)/_Point;
       double pipsSL = MathAbs(precioCalculado - sl)/_Point;
-      if ((pipsTP < 200) || (pipsSL < 200)) {
+      if ((pipsTP < 100) || (pipsSL < 100)) {
          Print(id + " TakeProfit o StopLoss no valido");
          return false;
       }
@@ -87,6 +87,7 @@ void Tendencia::initTendencia(string strEstrategia,int indexParam)
    }
 
    v = stringUtil.getValue(strEstrategia,"FECHA_TENDENCIA");
+   StringReplace(v,"/",".");
    fechaTendencia=StringToTime(v);
    precioCalculado=StringToDouble(stringUtil.getValue(strEstrategia,"PRECIO_CALCULADO"));
    tp=StringToDouble(stringUtil.getValue(strEstrategia,"TAKE_PROFIT"));
@@ -106,8 +107,9 @@ void Tendencia::initTendencia(string strEstrategia,int indexParam)
    id = IntegerToString(index) + "-" + name + "-" + periodo;
    
    v = stringUtil.getValue(strEstrategia,"VIGENCIALOWER");
+   StringReplace(v,"/",".");
    VigenciaLower = StringToTime(v);
    v = stringUtil.getValue(strEstrategia,"VIGENCIAHIGHER");
-   VigenciaHigher = StringToTime(v);
-      
+   StringReplace(v,"/",".");
+   VigenciaHigher = StringToTime(v);      
   }
