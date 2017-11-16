@@ -1,79 +1,81 @@
 //+------------------------------------------------------------------+
-//|                                       GestionMonetariaProfit.mqh |
+//|                                       GestionMonetariaXProfit.mqh |
 //|                                               ricardorq85        |
 //+------------------------------------------------------------------+
 #property copyright "ricardorq85"
 
-#include <Genetic\Estrategy.mqh>
+#include <Genetic\IParaOperar.mqh>
 #include <Genetic\Vigencia.mqh>
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-class GestionMonetariaProfit
+class GestionMonetariaXProfit
   {
 private:
    double            profitAcumulado;
    double            balanceBase;
    double            loteActual;
 
-   double            calcularLote(Estrategy *currentEstrategia,double maxBalance,bool inactivar);
+   double            calcularlote(IParaOperar *currentEstrategia,double maxBalance,bool inactivar);
+   double            calcularlote2(IParaOperar *currentEstrategia,double maxBalance,bool inactivar);
 
 public:
-                     GestionMonetariaProfit();
-                    ~GestionMonetariaProfit();
+                     GestionMonetariaXProfit();
+                    ~GestionMonetariaXProfit();
 
-   void              toggleActiveEstrategia(Estrategy *currentEstrategia,bool inactive);
+   void              toggleActiveEstrategia(IParaOperar *currentEstrategia,bool inactive);
 
-   double            getLot(Estrategy *currentEstrategia,double maxBalance,bool inactivar,bool calcularLote);
-   double            getSimpleLot(Estrategy *currentEstrategia);
+   double            getLot(IParaOperar *currentEstrategia,double maxBalance,bool inactivar,bool calcularlote);
+   double            getSimpleLot(IParaOperar *currentEstrategia);
    void              test(Vigencia *src_array);
 
    double getLotDivide() const { return 10.0;}
    double getMaxLot() const { return 5.0;}
    double getMinLot() const { return 0.01;}
+   double getPorcentajeCambioRequerido() const { return 0.2;}
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-GestionMonetariaProfit::GestionMonetariaProfit()
+GestionMonetariaXProfit::GestionMonetariaXProfit()
   {
-   profitAcumulado = 0;
-   balanceBase = AccountInfoDouble(ACCOUNT_BALANCE);
    loteActual = -1;
+   profitAcumulado=0;
+   balanceBase=AccountInfoDouble(ACCOUNT_BALANCE);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-GestionMonetariaProfit::~GestionMonetariaProfit()
+GestionMonetariaXProfit::~GestionMonetariaXProfit()
   {
 
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void GestionMonetariaProfit::test(Vigencia  *src_array)
+void GestionMonetariaXProfit::test(Vigencia  *src_array)
   {
 
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double GestionMonetariaProfit::getSimpleLot(Estrategy *currentEstrategia) 
+double GestionMonetariaXProfit::getSimpleLot(IParaOperar *currentEstrategia) 
   {
-//return (currentEstrategia.Lote * currentEstrategia.cantidadVigencia) / getLotDivide();
-   return (currentEstrategia.Lote);
-//return (getMaxLot() - (currentEstrategia.Lote * currentEstrategia.cantidadVigencia)) / getLotDivide();
+//return (currentEstrategia.lote * currentEstrategia.cantidadVigencia) / getLotDivide();
+   return (currentEstrategia.lote);
+//return (getMaxLot() - (currentEstrategia.lote * currentEstrategia.cantidadVigencia)) / getLotDivide();
 //return (currentEstrategia.StopLoss / currentEstrategia.TakeProfit) / getLotDivide();
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double GestionMonetariaProfit::getLot(Estrategy *currentEstrategia,double maxBalance,bool inactivar,bool calcularLote) 
+double GestionMonetariaXProfit::getLot(IParaOperar *currentEstrategia,double maxBalance,bool inactivar,bool calcularlote) 
   {
    double lot;
-   if(calcularLote) 
+   if(calcularlote) 
      {
-      lot=calcularLote(currentEstrategia,maxBalance,inactivar);
+      lot=calcularlote(currentEstrategia,maxBalance,inactivar);
         }else {
       lot=getSimpleLot(currentEstrategia);
       lot = MathMax(getMinLot(), lot);
@@ -82,10 +84,45 @@ double GestionMonetariaProfit::getLot(Estrategy *currentEstrategia,double maxBal
      }
    return lot;
   }
+  
+double GestionMonetariaXProfit::calcularlote(IParaOperar *currentEstrategia,double maxBalance,bool inactivar) {
+   double minLot=getMinLot();
+   double maxLot=getMaxLot();   
+   double loteBase = currentEstrategia.lote;
+   if (loteActual == -1) {
+      loteActual = loteBase;
+   }
+   
+   HistorySelect(0,TimeCurrent());
+   uint     total=HistoryDealsTotal();   
+   double nuevoLote = loteActual;
+   if (total > 0) {
+      double nuevoBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+      double cambioRequerido = (balanceBase * getPorcentajeCambioRequerido());
+      double diferenciaBalance = (nuevoBalance - balanceBase);
+      //double profitTemp = MathMod(diferenciaBalance,(balanceBase*0.1));
+      double porcentajeCambio = ((diferenciaBalance) / cambioRequerido);
+      double loteTemp = loteActual;
+      if (MathAbs(diferenciaBalance) >= cambioRequerido) {
+         loteTemp += (loteBase * porcentajeCambio);
+      }
+      if (diferenciaBalance != 0) {
+         nuevoLote = MathMax(minLot, loteTemp);
+         nuevoLote = MathMin(maxLot, nuevoLote);
+         nuevoLote = NormalizeDouble(nuevoLote, 2);
+      }
+      if(nuevoLote!=loteActual) {
+         balanceBase=AccountInfoDouble(ACCOUNT_BALANCE);
+      }
+   }
+   loteActual = nuevoLote;
+   return nuevoLote;
+}
+  
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double GestionMonetariaProfit::calcularLote(Estrategy *currentEstrategia,double maxBalance,bool inactivar)
+double GestionMonetariaXProfit::calcularlote2(IParaOperar *currentEstrategia,double maxBalance,bool inactivar)
   {
    HistorySelect(0,TimeCurrent());
    ulong    ticket=0;
@@ -94,8 +131,8 @@ double GestionMonetariaProfit::calcularLote(Estrategy *currentEstrategia,double 
    string symbol;
    long inPositionId=0;
    long outPositionId=0;
-   double loteActual = currentEstrategia.Lote;
-   double nuevoLote=currentEstrategia.Lote;
+   double loteActual = currentEstrategia.lote;
+   double nuevolote=currentEstrategia.lote;
    int last=0;
    long entry;
    uint     total=HistoryDealsTotal();
@@ -112,7 +149,7 @@ double GestionMonetariaProfit::calcularLote(Estrategy *currentEstrategia,double 
               {
                comment=HistoryDealGetString(ticket,DEAL_COMMENT);
                inPositionId=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
-               //if((comment!=NULL) && (comment!=(currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId))){continue;}
+               //if((comment!=NULL) && (comment!=(currentEstrategia.index+"-"+currentEstrategia.id))){continue;}
               }
             else if(entry==DEAL_ENTRY_OUT)
               {
@@ -141,22 +178,22 @@ double GestionMonetariaProfit::calcularLote(Estrategy *currentEstrategia,double 
       double porcentajeCambio=((profitAcumulado-profitTemp)/balanceBase);
       double loteTemp=loteActual *(1+porcentajeCambio);
 
-      nuevoLote = MathMax(minLot, loteTemp);
-      nuevoLote = MathMin(maxLot, nuevoLote);
-      nuevoLote = NormalizeDouble(nuevoLote, 2);
+      nuevolote = MathMax(minLot, loteTemp);
+      nuevolote = MathMin(maxLot, nuevolote);
+      nuevolote = NormalizeDouble(nuevolote, 2);
 
-      if(nuevoLote!=loteActual) 
+      if(nuevolote!=loteActual) 
         {
          balanceBase=AccountInfoDouble(ACCOUNT_BALANCE);
          profitAcumulado=profitTemp;
         }
      }
-   return nuevoLote;
+   return nuevolote;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void GestionMonetariaProfit::toggleActiveEstrategia(Estrategy *currentEstrategia,bool inactive)
+void GestionMonetariaXProfit::toggleActiveEstrategia(IParaOperar *currentEstrategia,bool inactive)
   {
    if(!inactive){return;}
 
@@ -193,7 +230,7 @@ void GestionMonetariaProfit::toggleActiveEstrategia(Estrategy *currentEstrategia
             comment=HistoryDealGetString(ticket,DEAL_COMMENT);
             inPositionId=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
 
-            if((comment!=NULL) && (comment!=(currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId))){continue;}
+            if((comment!=NULL) && (comment!=(currentEstrategia.index+"-"+currentEstrategia.id))){continue;}
            }
          else if(entry==DEAL_ENTRY_OUT)
            {
@@ -201,7 +238,7 @@ void GestionMonetariaProfit::toggleActiveEstrategia(Estrategy *currentEstrategia
             outPositionId=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
            }
          if((inPositionId==0) || (outPositionId==0) || (inPositionId!=outPositionId)){continue;}
-         if((comment!=NULL) && (comment==(currentEstrategia.Index+"-"+currentEstrategia.EstrategiaId)))
+         if((comment!=NULL) && (comment==(currentEstrategia.index+"-"+currentEstrategia.id)))
            {
             if(profit<0)
               {
@@ -214,7 +251,7 @@ void GestionMonetariaProfit::toggleActiveEstrategia(Estrategy *currentEstrategia
          break;
         }
      }
-//   Print("Comment="+comment+" EstrategiaId="+currentEstrategia.EstrategiaId+" currentNum="+currentNum);
+//   Print("Comment="+comment+" id="+currentEstrategia.id+" currentNum="+currentNum);
 //   Print(" currentProfit="+currentProfit+" MaxProfit="+maxProfit+" MaxBalance="+maxBalance+" Balance actual="+balanceActual);
 
   }

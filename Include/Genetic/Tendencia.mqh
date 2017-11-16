@@ -6,8 +6,9 @@
 #property copyright "ricardorq85"
 #property link      "https://www.mql5.com"
 #include <Genetic\StringUtil.mqh>
+#include <Genetic\IParaOperar.mqh>
 
-class Tendencia
+class Tendencia : public IParaOperar
   {
 private:
    StringUtil *stringUtil;
@@ -18,14 +19,14 @@ public:
    datetime          VigenciaLower;
    datetime          VigenciaHigher;   
    double            precioCalculado;
-   double            lote;
+//   double            lote;
    double            tp;
    double            sl;
    double            pendiente;
-   int               index;
-   bool              active;
+//   int               index;
+//   bool              active;
    bool              open;
-   string            id;
+//   string            id;
    string            name;
    int            tipoOperacion;
 
@@ -49,22 +50,24 @@ Tendencia::~Tendencia()
   {
   }
 
-bool Tendencia::isValidForOpen(datetime activeTime) {
+bool Tendencia::isValidForOpen(datetime inActiveTime) {
    if ((!active) || (open)) {
          return false;
       }
-      if ((activeTime < VigenciaLower) || (activeTime > VigenciaHigher)) {
+      if ((inActiveTime < VigenciaLower) || (inActiveTime > VigenciaHigher)) {
          return false;
       }
       double pipsTP = MathAbs(precioCalculado - tp)/_Point;
       double pipsSL = MathAbs(precioCalculado - sl)/_Point;
       if ((pipsTP < 100) || (pipsSL < 100)) {
          Print(id + " TakeProfit o StopLoss no valido");
+         active = false;
          return false;
       }
       if (periodo != "EXTREMO") {
          if (MathAbs(pendiente) < 0.001) {
             Print(id + " Pendiente no valida");
+            active = false;
             return false;
          }
       }
@@ -103,6 +106,7 @@ void Tendencia::initTendencia(string strEstrategia,int indexParam)
       tipoOperacion=ORDER_TYPE_SELL;
     }
    periodo = stringUtil.getValue(strEstrategia,"PERIOD");
+   pair = stringUtil.getValue(strEstrategia,"PAIR");
    name = stringUtil.getValue(strEstrategia,"NAME");
    id = IntegerToString(index) + "-" + name + "-" + periodo;
    
