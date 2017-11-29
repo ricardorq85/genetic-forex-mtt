@@ -18,7 +18,7 @@ public:
    datetime          fechaTendencia;
    datetime          VigenciaLower;
    datetime          VigenciaHigher;   
-   double            precioCalculado;
+   //double            precioCalculado;
 //   double            lote;
    double            tp;
    double            sl;
@@ -60,13 +60,19 @@ bool Tendencia::isValidForOpen(datetime inActiveTime) {
       double pipsTP = MathAbs(precioCalculado - tp)/_Point;
       double pipsSL = MathAbs(precioCalculado - sl)/_Point;
       if ((pipsTP < 100) || (pipsSL < 100)) {
-         Print(id + " TakeProfit o StopLoss no valido");
-         active = false;
+         //Print(id + " TakeProfit o StopLoss muy pequeno");
+         active = false;         
          return false;
       }
+      if ((pipsSL > 1500)) {
+         //Print(id + " StopLoss muy grande");
+         active = false;
+         return false;
+      }      
       if (periodo != "EXTREMO") {
-         if (MathAbs(pendiente) < 0.001) {
-            Print(id + " Pendiente no valida");
+         if (MathAbs(pendiente) < 0.0001) {
+         //if (false) {
+            //Print(id + " Pendiente no valida");
             active = false;
             return false;
          }

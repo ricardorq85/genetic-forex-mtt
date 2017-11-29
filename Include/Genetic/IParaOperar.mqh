@@ -12,6 +12,7 @@ class IParaOperar {
 public:
 
    double            lote;
+   double            precioCalculado;
    string            pair;
    bool              active;
    int               index;
