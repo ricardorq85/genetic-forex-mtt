@@ -49,6 +49,8 @@ int inicializar()
    StringToUpper(strFileName);
    if (StringFind(strFileName,"12H")>=0) {
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrSnow);   
+   } else if (StringFind(strFileName,"13D")>=0) {
+      PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrOrangeRed);      
    } else if (StringFind(strFileName,"2H")>=0) {
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrDarkOrchid);
    } else if (StringFind(strFileName,"6H")>=0) {      
@@ -70,7 +72,7 @@ int inicializar()
    } else if (StringFind(strFileName,"9D")>=0) {
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrDarkOrange);      
    } else if (StringFind(strFileName,"10D")>=0) {
-      PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrDarkBlue);      
+      PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrDarkBlue);
    } else {
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,clrDarkOrange); 
    }   

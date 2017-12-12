@@ -14,19 +14,17 @@ private:
    StringUtil *stringUtil;
 
 public:
+   string            strTendencia;
    string            periodo;
    datetime          fechaTendencia;
    datetime          VigenciaLower;
    datetime          VigenciaHigher;   
-   //double            precioCalculado;
-//   double            lote;
    double            tp;
    double            sl;
+   double            stopApertura;
+   double            limitApertura;
    double            pendiente;
-//   int               index;
-//   bool              active;
    bool              open;
-//   string            id;
    string            name;
    int            tipoOperacion;
 
@@ -54,36 +52,40 @@ bool Tendencia::isValidForOpen(datetime inActiveTime) {
    if ((!active) || (open)) {
          return false;
       }
-      if ((inActiveTime < VigenciaLower) || (inActiveTime > VigenciaHigher)) {
-         return false;
-      }
-      double pipsTP = MathAbs(precioCalculado - tp)/_Point;
-      double pipsSL = MathAbs(precioCalculado - sl)/_Point;
-      if ((pipsTP < 100) || (pipsSL < 100)) {
-         //Print(id + " TakeProfit o StopLoss muy pequeno");
-         active = false;         
-         return false;
-      }
-      if ((pipsSL > 1500)) {
-         //Print(id + " StopLoss muy grande");
+   if ((inActiveTime < VigenciaLower) || (inActiveTime > VigenciaHigher)) {
+      if (inActiveTime > VigenciaHigher) {
          active = false;
-         return false;
-      }      
-      if (periodo != "EXTREMO") {
-         if (MathAbs(pendiente) < 0.0001) {
-         //if (false) {
-            //Print(id + " Pendiente no valida");
-            active = false;
-            return false;
-         }
       }
+      return false;
+   }
+   double pipsTP = MathAbs(precioCalculado - tp)/_Point;
+   double pipsSL = MathAbs(precioCalculado - sl)/_Point;
+   if ((pipsTP < 100) || (pipsSL < 100)) {
+      //Print(id + " TakeProfit o StopLoss muy pequeno");
+      active = false;
+      return false;
+   }
+   if ((pipsSL > 1500)) {
+      //Print(id + " StopLoss muy grande");
+      active = false;
+      return false;
+   }
+   //if (periodo != "EXTREMO") {
+      //if (MathAbs(pendiente) < 0.0001) {
+      //if (false) {
+         //Print(id + " Pendiente no valida");
+        // active = false;
+         //return false;
+      //}
+   //}
       
-      return true;
+   return true;
 }
 
 void Tendencia::initTendencia(string strEstrategia,int indexParam)
   {   
-   active=true;
+   strTendencia = strEstrategia;
+   active=true;   
    open=false;
    index=indexParam;
    StringToUpper(strEstrategia);
@@ -101,6 +103,8 @@ void Tendencia::initTendencia(string strEstrategia,int indexParam)
    precioCalculado=StringToDouble(stringUtil.getValue(strEstrategia,"PRECIO_CALCULADO"));
    tp=StringToDouble(stringUtil.getValue(strEstrategia,"TAKE_PROFIT"));
    sl=StringToDouble(stringUtil.getValue(strEstrategia,"STOP_LOSS"));
+   stopApertura=StringToDouble(stringUtil.getValue(strEstrategia,"STOP_APERTURA"));
+   limitApertura=StringToDouble(stringUtil.getValue(strEstrategia,"LIMIT_APERTURA"));
    lote=StringToDouble(stringUtil.getValue(strEstrategia,"LOTE"));
    pendiente=StringToDouble(stringUtil.getValue(strEstrategia,"PENDIENTE"));
 

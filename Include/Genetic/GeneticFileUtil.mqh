@@ -16,12 +16,41 @@ class GeneticFileUtil {
                   ~GeneticFileUtil();
       void   loadTendencias(string fileName, Tendencia& tendencias[]);
       void   loadAllTendencias(string directorySourceName, Tendencia& tendencias[]);
+      void   saveTendencias(string parentName, Tendencia& tendencias[]);
       void   loadProperties(string fileName, GeneticProperty& properties[]);
       void   deleteFile(string fileName);
 };
 
 GeneticFileUtil::GeneticFileUtil() {}
 GeneticFileUtil::~GeneticFileUtil() {}
+
+void GeneticFileUtil::saveTendencias(string parentName, Tendencia& tendencias[]) {   
+   string fullFileName = parentName + (TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES));
+   StringReplace(fullFileName, " ", "_");
+   StringReplace(fullFileName, ".", "");
+   StringReplace(fullFileName, ":", "");
+   StringAdd(fullFileName, ".csv");
+   ResetLastError();
+   bool created = false;      
+   int fileHandle;
+   for(int i=0; i<ArraySize(tendencias); i++) {
+      if (tendencias[i].active) {
+         if (!created) {
+            fileHandle=FileOpen(fullFileName,FILE_WRITE|FILE_ANSI|FILE_COMMON);
+            created = true;
+         }
+         if(fileHandle != INVALID_HANDLE) {
+            FileWrite(fileHandle,tendencias[i].strTendencia);               
+         }else {
+            Print("FileOpen Error code "+IntegerToString(GetLastError()));
+            break;
+         }
+      }
+   }
+   if (created && (fileHandle != INVALID_HANDLE)) {
+      FileClose(fileHandle);
+   }
+}
 
 void GeneticFileUtil::deleteFile(string fileName) { 
    ResetLastError();  
@@ -74,7 +103,7 @@ void GeneticFileUtil::loadTendencias(string fileName, Tendencia& tendencias[])
             int arrayIndex = ArraySize(tendencias);
             ArrayResize(tendencias,arrayIndex+1);
             tendencias[arrayIndex].initTendencia(str,arrayIndex+1);
-            Print("Tendencia cargada:"+IntegerToString(arrayIndex+1));
+            //Print("Tendencia cargada:"+IntegerToString(arrayIndex+1));
            }
         }
       FileClose(handle);
@@ -108,7 +137,7 @@ void GeneticFileUtil::loadProperties(string fileName, GeneticProperty& propertie
             Print("Property String:"+IntegerToString(i)+" "+str);
             ArrayResize(properties,i+1);
             properties[i].initProperty(str,i+1);
-            Print("Property cargada:"+IntegerToString(i));
+            //Print("Property cargada:"+IntegerToString(i));
            }
         }
       FileClose(handle);
