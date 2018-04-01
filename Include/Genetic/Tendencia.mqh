@@ -26,7 +26,8 @@ public:
    double            pendiente;
    bool              open;
    string            name;
-   int            tipoOperacion;
+   int               tipoOperacion;
+   bool              limitSuperado;
 
                      Tendencia();
                     ~Tendencia();
@@ -58,14 +59,17 @@ bool Tendencia::isValidForOpen(datetime inActiveTime) {
       }
       return false;
    }
+   //if (id == "927-1521312170642-4.0D" ) {
+     // Print(id);
+   //}   
    double pipsTP = MathAbs(precioCalculado - tp)/_Point;
    double pipsSL = MathAbs(precioCalculado - sl)/_Point;
-   if ((pipsTP < 100) || (pipsSL < 100)) {
+   if ((pipsTP < 200) || (pipsSL < 200)) {
       //Print(id + " TakeProfit o StopLoss muy pequeno");
       active = false;
       return false;
    }
-   if ((pipsSL > 1500)) {
+   if ((pipsSL > 100000)) {
       //Print(id + " StopLoss muy grande");
       active = false;
       return false;
@@ -108,6 +112,11 @@ void Tendencia::initTendencia(string strEstrategia,int indexParam)
    lote=StringToDouble(stringUtil.getValue(strEstrategia,"LOTE"));
    pendiente=StringToDouble(stringUtil.getValue(strEstrategia,"PENDIENTE"));
 
+   if (limitApertura > 0) {
+      limitSuperado = false;
+   } else {
+      limitSuperado = true;
+   }
    v=stringUtil.getValue(strEstrategia,"TIPO_OPERACION");
    StringToUpper(v);
    if(v=="BUY") {

@@ -9,7 +9,8 @@
 #include <Genetic\GeneticProperty.mqh>
 
 class GeneticFileUtil {
-   private:
+
+   private:      
    
    public:
                   GeneticFileUtil();
@@ -25,10 +26,14 @@ GeneticFileUtil::GeneticFileUtil() {}
 GeneticFileUtil::~GeneticFileUtil() {}
 
 void GeneticFileUtil::saveTendencias(string parentName, Tendencia& tendencias[]) {   
+   static int FILE_COUNT=1;
    string fullFileName = parentName + (TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES));
    StringReplace(fullFileName, " ", "_");
    StringReplace(fullFileName, ".", "");
    StringReplace(fullFileName, ":", "");
+   StringAdd(fullFileName, "-"+FILE_COUNT);
+   FILE_COUNT++;
+   
    StringAdd(fullFileName, ".csv");
    ResetLastError();
    bool created = false;      
@@ -64,18 +69,22 @@ void GeneticFileUtil::loadAllTendencias(string directorySourceName, Tendencia& t
    ResetLastError();
    string fileName;
    long search_handle=FileFindFirst((directorySourceName+"*"), fileName, FILE_COMMON);
-	do {
-	 ResetLastError();
-	 string loadFileName;
-	 StringConcatenate(loadFileName, directorySourceName,fileName);
-	 loadTendencias(loadFileName, tendencias);
-	 string targetFileName = loadFileName;
-	 StringReplace(targetFileName, "live", "processed");
-	 FileMove(loadFileName, FILE_COMMON, targetFileName, FILE_COMMON);
-	 if (GetLastError() != 0) {
-	   Print("Moving Error code: "+ loadFileName + ":" +IntegerToString(GetLastError()));
-	 }
-	} while(FileFindNext(search_handle,fileName));
+   if(search_handle!=INVALID_HANDLE) {
+   	do {
+   	 ResetLastError();
+   	 string loadFileName;
+   	 StringConcatenate(loadFileName, directorySourceName,fileName);
+   	 loadTendencias(loadFileName, tendencias);
+   	 string targetFileName = loadFileName;
+   	 StringReplace(targetFileName, "live", "processed");
+   	 FileMove(loadFileName, FILE_COMMON, targetFileName, FILE_COMMON);
+   	 if (GetLastError() != 0) {
+   	   Print("Moving Error code: "+ loadFileName + ":" +IntegerToString(GetLastError()));
+   	 }
+   	} while(FileFindNext(search_handle,fileName));
+	} else {
+	   Print("No hay archivos");
+	}
 	FileFindClose(search_handle); 
 }
 
